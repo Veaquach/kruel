@@ -832,6 +832,9 @@ addcmd("goto", "Go to anyone.", function(args)
 	addcmd({"rj", "rejoin"}, "Rejoin the same server.", function()
 		tp:TeleportToPlaceInstance(placeid, jobid, p)
 	end)
+	addcmd("sit", "Take a break.", function()
+	  p.Character.Humanoid.Sit = math.deg(2)+(5*7-42-(3*38)+(math.deg(2/(4*2/4)-0.05*20+0.1*20/2)-2-(8)-(5*(5+4))))	
+	end)
 	addcmd({"ref", "refresh"}, "Respawn at same position.", function()
 		if p.Character and p.Character.HumanoidRootPart then
 			local pos = p.Character.HumanoidRootPart.CFrame
@@ -893,7 +896,7 @@ addcmd("goto", "Go to anyone.", function(args)
 			end)
 
 			if not success or not req then
-				Message("Server Hop", "Failed to find servers, retrying soon...", 2)
+				notif("Server Hop", "Failed to find servers, retrying soon...", 2)
 				return false
 			end
 
@@ -918,7 +921,7 @@ addcmd("goto", "Go to anyone.", function(args)
 				end)
 				return true
 			else
-				Message("Server Hop", "Failed to find servers, retrying again soon...", 2)
+				notif("Server Hop", "Failed to find servers, retrying again soon...", 2)
 				return false
 			end
 		end
@@ -949,6 +952,33 @@ addcmd("goto", "Go to anyone.", function(args)
 	end)
 	local esploops = {}
 	local respawnconns = {}
+	function NOESP(plr)
+	if esploops[plr] then
+		esploops[plr]:Disconnect()
+		esploops[plr] = nil
+	end
+
+	if respawnconns[plr] then
+		respawnconns[plr]:Disconnect()
+		respawnconns[plr] = nil
+	end
+
+	local char = plr.Character
+	if not char then return end
+
+	local highlight = char:FindFirstChildOfClass("Highlight")
+	if highlight then
+		highlight:Destroy()
+	end
+
+	local head = char:FindFirstChild("Head")
+	if not head then return end
+
+	local billboard = head:FindFirstChild("usphind coding is ud asf")
+	if billboard then
+		billboard:Destroy()
+	end
+end
 	function ESP(plr, char)
 		if plr == p then return end
 		NOESP(plr)
@@ -963,15 +993,9 @@ addcmd("goto", "Go to anyone.", function(args)
 	if not (hum and root and head) then
 	return
 	end
-
-			local highlight = Instance.new("Highlight")
-			highlight.Parent = char
-			highlight.Adornee = char
-			highlight.FillColor = BrickColor.new(plr.TeamColor == game.Players.LocalPlayer.TeamColor and "Bright green" or "Bright red").Color
-			highlight.OutlineColor = Color3.fromRGB(0, 0, 0)
-			highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 			local bg = Instance.new("BillboardGui")
 			bg.Parent = char:FindFirstChild("Head")
+			bg.Name = "usphind coding is ud asf"
 			bg.Adornee = char:FindFirstChild("Head")
 			bg.Size = UDim2.new(0, 100, 0, 150)
 			bg.StudsOffset = Vector3.new(0, 1, 0)
@@ -1014,10 +1038,25 @@ addcmd("goto", "Go to anyone.", function(args)
 		else
 			label.Text = "[" .. math.floor(targetHum.Health) .. "HP] " .. plr.Name .. " [" .. math.floor((localRoot.Position - targetRoot.Position).Magnitude) .. "M]"
 		end
+		local distance = (localRoot.Position - targetRoot.Position).Magnitude
+		local highlight = char:FindFirstChildOfClass("Highlight")
+		if distance > 250 then
+			if highlight then
+				highlight:Destroy()
+			end
+		elseif distance < 250 then
+			if not highlight then
+			highlight = Instance.new("Highlight")
+			highlight.Parent = char
+			highlight.Adornee = char
+			highlight.FillColor = BrickColor.new(plr.TeamColor == game.Players.LocalPlayer.TeamColor and "Bright green" or "Bright red").Color
+			highlight.OutlineColor = Color3.fromRGB(0, 0, 0)
+			highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+		end
 		highlight.FillColor = BrickColor.new(
 			plr.TeamColor == game.Players.LocalPlayer.TeamColor and "Bright green" or "Bright red"
 		).Color
-
+	end
 		local health = targetHum.Health
 		local maxhealth = targetHum.MaxHealth
 		local percentage = math.clamp(health / maxhealth, 0, 1)
@@ -1034,38 +1073,10 @@ addcmd("goto", "Go to anyone.", function(args)
 		end
 	end)
 end
-function NOESP(plr)
-	if esploops[plr] then
-		esploops[plr]:Disconnect()
-		esploops[plr] = nil
-	end
-
-	if respawnconns[plr] then
-		respawnconns[plr]:Disconnect()
-		respawnconns[plr] = nil
-	end
-
-	local char = plr.Character
-	if not char then return end
-
-	local highlight = char:FindFirstChildOfClass("Highlight")
-	if highlight then
-		highlight:Destroy()
-	end
-
-	local head = char:FindFirstChild("Head")
-	if not head then return end
-
-	local billboard = head:FindFirstChildOfClass("BillboardGui")
-	if billboard then
-		billboard:Destroy()
-	end
-end
 
 local esping = false
 local esploop = false
 local respawnconns = {}
-
 addcmd("esp", "Enables ESP", function()
     if esploop then return end
     esping = true
@@ -1083,7 +1094,7 @@ addcmd("esp", "Enables ESP", function()
                         ESP(plr, char)
                     end
                 end)
-            end
+			end
         end
     end
     game.Players.PlayerAdded:Connect(function(plr)
@@ -1700,6 +1711,15 @@ end)
 			p.Character.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
 			end
 			p.Character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+	end)
+	addcmd("mm2", "Loads a in-development Murder Murder Mystery 2 script.", function()
+		if game.PlaceId ~= 142823291 then return end
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/justkittybro/apocHub/refs/heads/main/eclipsehubreborn",true))()	
+	end)
+	addcmd("mm22", "Loads a Murder Mystery 2 script.", function()
+		if game.PlaceId ~= 142823291 then return end
+		loadstring(game:HttpGet('https://raw.githubusercontent.com/thunderXhub/ThunderXHUB/refs/heads/main/loader'))()
+		notif("Kruel", "Please also try ;mm2, it's a new script in development.", 3)
 	end)
 	addcmd("headsit", "Headsit", function(args)
 		local trgts = findplr(args[1])
