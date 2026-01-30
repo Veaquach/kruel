@@ -709,29 +709,6 @@ addcmd("goto", "Go to anyone.", function(args)
 			notif("Kruel", "Player not found.", 3)
 		end
 	end)
-	addcmd("help", "Lists commands.", function()
-		local printedButtons = {}
-		for name, data in pairs(cmds) do
-			if not printedButtons[data.Button] then
-				printedButtons[data.Button] = true
-
-				local aliases = {}
-				for othername, otherdata in pairs(cmds) do
-					if otherdata.Button == data.Button and othername ~= name then
-						table.insert(aliases, othername)
-					end
-				end
-
-				local aliasesstr = ""
-				if #aliases > 0 then
-					aliasesstr = " (Aliases: " .. table.concat(aliases, ", ") .. ")"
-				end
-				print("======================================")
-				print("Command: " .. name .. aliasesstr .. ", Description: " .. (data.Description or "Not provided."))
-			end
-		end
-		notif("Kruel", "Please check Developer Console (F9)", 3)
-	end)
 	addcmd({"tpto", "gotopos", "pos"}, "Teleports to coordinates (Usage: ;tpto X, Y, Z)", function(args)
 		local coords = string.gsub(args[1], ",", "")
 		local coords1 = string.gsub(args[2], ",", "")
@@ -1824,7 +1801,8 @@ end)
 		frs:Destroy()
 		credits = false
 	end)
-	-- hardcoded binds cuz ez its private script so idc enough to make bind command work 🤣
+	
+-- hardcoded binds cuz ez its private script so idc enough to make bind command work 🤣 wow anyone seeing this is cool ez its not private anymore but i still dk if ill make it date: 1/30/2026 today
 	uis.InputBegan:Connect(function(input, gameProcessed)
 		if gameProcessed then return end
 		if psg:FindFirstChildOfClass("TextBox") and psg.TextBox:IsFocused() then return end
@@ -1836,3 +1814,215 @@ end)
 			exec("fly")
 		end
 	end)
+local frr = Instance.new("Frame")
+frr.Size = UDim2.new(0, 350, 0, 500)
+frr.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frr.Position = UDim2.new(0.5, -175, 0.5, -250)
+frr.Parent = psg
+frr.Visible = false
+local cmdss = {}
+local count = 0
+for _, data in pairs(cmds) do
+	if not cmdss[data.Button] then
+		cmdss[data.Button] = true
+		count = count + 1
+	end
+end
+countt = count
+local drgfr = Instance.new("Frame")
+drgfr.Position = UDim2.new(0, 0, 0, 0)
+drgfr.Size = UDim2.new(1, 0, 0, 20)
+drgfr.BackgroundColor3 = theme.Title
+drgfr.Parent = frr
+local mlogoo = Instance.new("ImageLabel")
+mlogoo.Name = "KruelIconn"
+mlogoo.BackgroundTransparency = 1
+mlogoo.Position = UDim2.new(0.025, 0, 0, 0)
+mlogoo.ZIndex = 12
+mlogoo.Size = UDim2.new(0, 25, 0, 19)
+mlogoo.Image = "rbxassetid://130500547668668"
+mlogoo.Parent = drgfr
+local gradd = Instance.new("UIGradient")
+gradd.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, theme.Title),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 180, 180))
+}
+gradd.Parent = drgfr
+local cmdtitle = Instance.new("TextLabel")
+cmdtitle.Text = "Commands - " .. countt
+cmdtitle.Font = Enum.Font.GothamBold
+cmdtitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+cmdtitle.TextSize = 16
+cmdtitle.Size = UDim2.new(1, 0, 1, 0)
+cmdtitle.Position = UDim2.new(0, 0, 0, 0) 
+cmdtitle.BackgroundTransparency = 1
+cmdtitle.Parent = drgfr
+
+local grad3 = Instance.new("UIGradient")
+grad3.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(115, 115, 115)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 180, 180))
+}
+grad3.Parent = cmdtitle
+local fr2 = Instance.new("ScrollingFrame")
+fr2.Size = UDim2.new(0, 350, 0, 480)
+fr2.Position = UDim2.new(0, 0, 0, 20)
+fr2.ScrollBarThickness = 0
+fr2.AutomaticCanvasSize = Enum.AutomaticSize.Y
+fr2.CanvasSize = UDim2.new(0, 0, 0, 0)
+fr2.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+fr2.Parent = frr
+fr2.ClipsDescendants = true
+
+local fr2list = Instance.new("UIListLayout")
+fr2list.Parent = fr2
+fr2list.SortOrder = Enum.SortOrder.LayoutOrder
+fr2list.Padding = UDim.new(0, 5)
+local function addcmds(name, desc, func)
+    local display
+    if typeof(name) == "table" then
+        display = name[1]
+        if #name > 1 then
+            display ..= " (" .. table.concat({select(2, unpack(name))}, ", ") .. ")"
+        end
+    else
+        display = name
+    end
+    
+    local cmdbtn = Instance.new("TextButton")
+    cmdbtn.Size = UDim2.new(1, 0, 0, 50) 
+    cmdbtn.TextXAlignment = Enum.TextXAlignment.Left
+    cmdbtn.TextYAlignment = Enum.TextYAlignment.Top
+    cmdbtn.Text = "  " .. display
+    cmdbtn.Font = Enum.Font.GothamBold
+    cmdbtn.TextSize = 19
+    cmdbtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    cmdbtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+    cmdbtn.Parent = fr2
+    cmdbtn.AutomaticSize = Enum.AutomaticSize.Y
+    
+    local descttl = Instance.new("TextLabel")
+    descttl.Size = UDim2.new(1, -10, 0, 0)
+    descttl.Position = UDim2.new(0, 5, 0, 25)
+    descttl.TextWrapped = true
+    descttl.AutomaticSize = Enum.AutomaticSize.Y
+    descttl.Text = desc
+    descttl.Font = Enum.Font.Gotham
+    descttl.TextSize = 14
+    descttl.BackgroundTransparency = 1
+    descttl.TextColor3 = Color3.fromRGB(0, 0, 0)
+    descttl.TextXAlignment = Enum.TextXAlignment.Left
+    descttl.TextYAlignment = Enum.TextYAlignment.Top
+    descttl.Parent = cmdbtn
+    
+    local grad2 = Instance.new("UIGradient")
+    grad2.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(75, 75, 75)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(195, 195, 195))
+    }
+    
+    local crnr = Instance.new("UICorner")
+    crnr.CornerRadius = UDim.new(0, 7)
+    crnr.Parent = cmdbtn
+    grad2.Parent = cmdbtn
+    
+    cmdbtn.MouseButton1Click:Connect(function()
+        func{}
+    end)
+end
+
+local paddingg = Instance.new("UIPadding")
+paddingg.Parent = fr2
+paddingg.PaddingLeft = UDim.new(0, 10)
+paddingg.PaddingRight = UDim.new(0, 10)
+paddingg.PaddingTop = UDim.new(0, 10)
+paddingg.PaddingBottom = UDim.new(0, 10)
+gradd.Parent = drgfr
+local mnbtn = Instance.new("TextButton")
+mnbtn.Size = UDim2.new(0, 35, 0, 20)
+mnbtn.Position = UDim2.new(0, 315, 0, 0)
+mnbtn.Text = "X"
+mnbtn.Font = Enum.Font.GothamBold
+mnbtn.TextSize = 19
+mnbtn.BackgroundTransparency = 1
+mnbtn.TextColor3 = Color3.fromRGB(155, 155, 155)
+mnbtn.Parent = drgfr
+local clbtn = Instance.new("TextButton")
+clbtn.Size = UDim2.new(0, 35, 0, 20)
+clbtn.Position = UDim2.new(0, 285, 0, .5)
+clbtn.Text = "^"
+clbtn.Font = Enum.Font.GothamBold
+clbtn.TextSize = 30
+clbtn.BackgroundTransparency = 1
+clbtn.TextColor3 = Color3.fromRGB(155, 155, 155)
+clbtn.Parent = drgfr
+local tss = game:GetService('TweenService')
+local tiii = TweenInfo.new(.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+clbtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if frr.Size == UDim2.new(0, 350, 0, 500) then
+        tss:Create(frr, tiii, {Size = UDim2.new(0, 350, 0, 0)}):Play()
+		tss:Create(fr2, tiii, {Size = UDim2.new(0, 350, 0, 0)}):Play()
+		tss:Create(clbtn, tiii, {Rotation = 180}):Play()
+        else
+        tss:Create(frr, tiii, {Size = UDim2.new(0, 350, 0, 500)}):Play()
+		tss:Create(fr2, tiii, {Size = UDim2.new(0, 350, 0, 500)}):Play()
+		tss:Create(clbtn, tiii, {Rotation = 0}):Play()
+        end
+    end
+end)
+mnbtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        tss:Create(frr, tiii, {Position = UDim2.new(0, frr.Position.X.Offset, 0, -1000)}):Play()
+    end
+end)
+local draggingg = false
+local dragStartt
+local startPoss
+drgfr.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		draggingg = true
+		dragStartt = input.Position
+		startPoss = frr.Position
+	end
+end)
+
+drgfr.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		draggingg = false
+	end
+end)
+local UIS = game:GetService("UserInputService")
+UIS.InputChanged:Connect(function(input)
+	if draggingg and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStartt
+		ts:Create(frr, tii, {Position = UDim2.new(startPoss.X.Scale, startPoss.X.Offset + delta.X, startPoss.Y.Scale, startPoss.Y.Offset + delta.Y)}):Play()
+		-- yayyyy line 2000 woohoo yay my biggest project (already was ez) to anyone seeing this: <3 (idk if this is line 2000 anymore maybe i update when i need to maybe not ezz)
+	end
+end)
+addcmd({"cmds", "help"}, "Lists all commands.", function()
+	frr.Position = UDim2.new(0.5, -175, 0.5, -250)
+	frr.Visible = true
+end)
+for cmdName, cmdData in pairs(cmds) do
+
+    local alreadyAdded = false
+    for otherName, otherData in pairs(cmds) do
+        if otherData.Button == cmdData.Button and otherName < cmdName then
+            alreadyAdded = true
+            break
+        end
+    end
+    if not alreadyAdded then
+        local allNames = {}
+        for name, data in pairs(cmds) do
+            if data.Button == cmdData.Button then
+                table.insert(allNames, name)
+            end
+        end
+
+        table.sort(allNames)
+
+        addcmds(allNames, cmdData.Description, cmdData.Function)
+    end
+end
