@@ -1712,6 +1712,9 @@ end)
 			end
 			p.Character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
 	end)
+	addcmd("jobid", "Copies Server link to clipboard.", function()
+		setclipboard(("roblox://placeId=%s&gameInstanceId=%s"):format(game.PlaceId, game.JobId))
+	end)
 	addcmd("mm2", "Loads a in-development Murder Murder Mystery 2 script.", function()
 		if game.PlaceId ~= 142823291 then return end
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/justkittybro/apocHub/refs/heads/main/eclipsehubreborn",true))()	
