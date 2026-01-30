@@ -709,6 +709,21 @@ addcmd("goto", "Go to anyone.", function(args)
 			notif("Kruel", "Player not found.", 3)
 		end
 	end)
+local loopgotoconn = nil
+addcmd("loopgoto", "Loops goto.", function(args)
+		local vctms = findplr(args[1])
+		local trgt = vctms[1]
+		if trgt and trgt.Character and trgt.Character.HumanoidRootPart and p.Character and p.Character.HumanoidRootPart then
+			loopgotoconn = rs.Heartbeat:Connect(function()
+				p.Character.HumanoidRootPart.CFrame = trgt.Character.HumanoidRootPart.CFrame
+		end)
+	end
+end)
+addcmd("unloopgoto", "Stops loop goto.", function()
+	if loopgotoconn then
+		loopgotoconn:Disconnect()
+	end
+end)
 	addcmd({"tpto", "gotopos", "pos"}, "Teleports to coordinates (Usage: ;tpto X, Y, Z)", function(args)
 		local coords = string.gsub(args[1], ",", "")
 		local coords1 = string.gsub(args[2], ",", "")
@@ -1982,6 +1997,7 @@ local startPoss
 drgfr.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		draggingg = true
+		-- yayyyy line 2000 woohoo yay my biggest project (already was ez) to anyone seeing this: <3 (idk if this is line 2000 anymore maybe i update when i need to maybe not ezz)
 		dragStartt = input.Position
 		startPoss = frr.Position
 	end
@@ -1997,7 +2013,6 @@ UIS.InputChanged:Connect(function(input)
 	if draggingg and input.UserInputType == Enum.UserInputType.MouseMovement then
 		local delta = input.Position - dragStartt
 		ts:Create(frr, tii, {Position = UDim2.new(startPoss.X.Scale, startPoss.X.Offset + delta.X, startPoss.Y.Scale, startPoss.Y.Offset + delta.Y)}):Play()
-		-- yayyyy line 2000 woohoo yay my biggest project (already was ez) to anyone seeing this: <3 (idk if this is line 2000 anymore maybe i update when i need to maybe not ezz)
 	end
 end)
 addcmd({"cmds", "help"}, "Lists all commands.", function()
