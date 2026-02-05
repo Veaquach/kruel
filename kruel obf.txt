@@ -5,7 +5,7 @@
     Reuploading, reselling, or claiming this work as your own is not permitted.
     If you share modified versions publicly, credit @Veaquach clearly in the description.
 
-    Version: v0.8.5
+    Version: v0.9.0
     Server: https://discord.gg/pymGxT7KXR
     Author: Veaquach
 ]]
@@ -46,7 +46,7 @@
 	local tp = game:GetService("TeleportService")
 	local jobid = game.JobId
 	local placeid = game.PlaceId
-	local version = "v.0.8.5"
+	local version = "v.0.9.0"
 	local p = game.Players.LocalPlayer
 	local pg = p:WaitForChild("PlayerGui")
 	local psg = Instance.new("ScreenGui")
@@ -228,7 +228,7 @@
 		txt.TextSize = 15
 		txt.Parent = box
 		local ti = TweenInfo.new(d, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-		local ftw = ts:Create(slider, ti, {Size = UDim2.new(0, 0, 0, 15)})
+		local ftw = ts:Create(slider, ti, {Size = UDim2.new(0, 0, 0, 15)}) -- ts was wild it worked first try im crine
 		ftw:Play()
 		task.delay(d, function()
 			fout(box)
@@ -236,7 +236,7 @@
 			box:Destroy()
 		end)
 	end
-	local function exec(cmd)
+	local function exec(cmd) -- easier then i thought
 		local args = string.split(cmd, " ")
 		local cmdnm = table.remove(args, 1):lower()
 		if cmds[cmdnm] then
@@ -304,6 +304,7 @@
 	}
 	grad.Parent = drg
 	local uis = game:GetService("UserInputService")
+	-- lowk dog for not making mobile support idk if it works or not but idgaf about delta skids
 	if uis.TouchEnabled and not uis.KeyboardEnabled then
 		task.delay(5, function()
 			notif("Kruel", "Please use the chat in order to execute commands, prefix is ';', as touch devices are not fully supported.", 10)
@@ -503,6 +504,7 @@
 			tooltip.Visible = false
 		end)
 	end
+	-- woohoo commands!
 	addcmd("discord", "Join our Discord server!", function()
 		setclipboard("https://discord.gg/pymGxT7KXR")
 		notif("Kruel", "Discord invite link copied to clipboard!", 3)
@@ -760,8 +762,9 @@ end)
 	end)
 	addcmd("infjump", "Lets you jump infinitely.", function()
 		infjumping = true
-		uis.InputBegan:Connect(function(input)
+		uis.InputBegan:Connect(function(input, gpe)
 			if input.KeyCode == Enum.KeyCode.Space and infjumping then
+				if gpe then return end
 				p.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
 			end
 		end)
@@ -773,11 +776,106 @@ end)
 			infjumping = false
 		end		
 	end)
+	addcmd("antitrip", "Prevents you from tripping.", function()
+hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)		
+	end)
+	local spinflinging = false
+	local spinflingdied = nil
+	local bav = nil
+	addcmd("spinfling", "Flings people by spinning very fast.", function()
+		local hum = p.Character.Humanoid
+		if not hum or not p.Character or not p.Character.HumanoidRootPart then return end
+		if spinflinging then
+			if spinflingdied then spinflingdied:Disconnect() end
+			spinflinging = false
+			if bav then bav:Destroy() end
+			exec('clip')
+			if p.Character and p.Character.Humanoid then
+				p.Character.Humanoid.AutoRotate = true
+			end
+			return
+		end
+		exec("noclip")
+		task.wait(.1)
+		notif("Kruel", "To stop spinflinging, execute the command again.", 3)
+		spinflinging = true
+		for _, child in pairs(p.Character:GetDescendants()) do
+			if child:IsA("BasePart") then 
+				child.CustomPhysicalProperties = PhysicalProperties.new(100, .3, .5)
+			end
+		end
+		bav = Instance.new("BodyAngularVelocity")
+		bav.AngularVelocity = Vector3.new(0, 999999, 0)
+		bav.MaxTorque = Vector3.new(0, math.huge, 0)
+		bav.P = math.huge
+		bav.Parent = p.Character.HumanoidRootPart
+		hum.AutoRotate = false
+		spinflingdied = hum.Died:Connect(function()
+			if spinflinging then
+				if spinflingdied then spinflingdied:Disconnect() end
+				spinflinging = false
+				if bav then bav:Destroy() end
+				exec("clip")
+			end
+		end)
+		task.spawn(function()
+		while spinflinging do
+			bav.AngularVelocity = Vector3.new(0, 999999, 0)
+			task.wait(.2)
+			bav.AngularVelocity = Vector3.new(0, 0, 0)
+			task.wait(.1)
+		end
+		if bav and bav.Parent then bav:Destroy() end
+	end)
+end)
+local flashbackpos = nil
+local flashbackdied = nil
+
+p.CharacterAdded:Connect(function(char)
+	local humm = char:WaitForChild("Humanoid")
+	if flashbackdied then flashbackdied:Disconnect() end
+	flashbackdied = humm.Died:Connect(function()
+		local hrp = char:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			flashbackpos = hrp.CFrame
+		end
+	end)
+end)
+addcmd("flashback", "Teleports to the last position you died.", function()
+	if not flashbackpos then
+		notif("Kruel", "You have not died yet.", 3)
+		return
+	end
+	if p.Character and p.Character.HumanoidRootPart then
+	p.Character.HumanoidRootPart.CFrame = flashbackpos
+	end
+end)
+local orgdestroyheights = nil
+addcmd("antivoid", "Prevents you from falling into the void.", function()
+	orgdestroyheights = workspace.FallenPartsDestroyHeight
+	workspace.FallenPartsDestroyHeight = 0/0	
+end)
+addcmd("unantivoid", "Stops antivoid.", function()
+	if orgdestroyheights then
+		workspace.FallenPartsDestroyHeight = orgdestroyheights
+	end
+end)
+addcmd("fakeout", "Fake going into the void.", function()
+	if p.Character and p.Character.HumanoidRootPart then
+		exec("antivoid")
+		local pos = p.Character.HumanoidRootPart.CFrame
+		p.Character.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(0, workspace.FallenPartsDestroyHeight - 25, 0))
+		task.wait(.4)
+		p.Character.HumanoidRootPart.CFrame = pos
+		exec("unantivoid")
+	end
+end)
 	addcmd({"jp", "jumppower", "jumpheight"}, "Changes JumpHeight property.", function(args)
 		if p.Character and p.Character.Humanoid then
-			p.Character.Humanoid.JumpHeight = tonumber(args[1])
+			p.Character.Humanoid.UseJumpPower = true
 			p.Character.Humanoid.JumpPower = tonumber(args[1])
-			notif("Kruel", "JumpHeight changed to " .. tonumber(args[1]), 3)
+			notif("Kruel", "JumpPower changed to " .. tonumber(args[1]), 3)
 			if not tonumber(args[1]) then
 				notif("Kruel", "Argument is not a number.", 3)
 			end
@@ -785,7 +883,7 @@ end)
 	end)
 	addcmd("noclip", "Allows you to go through walls.", function()
 		noclipping = true
-		noclipconn = rs.Stepped:Connect(function()
+		noclipconn = rs.Stepped:Connect(function() -- stfu "undefined global" 🤖🤖🤖 ts works fine
 			if p.Character then
 				for _, part in game.Players.LocalPlayer.Character:GetDescendants() do
 					if part.Name ~= "Hitbox" then
@@ -804,19 +902,22 @@ end)
 		noclipconn:Disconnect()
 	end)
 	local viewing = false
+	local viewloop = nil
 	addcmd({"view", "spectate"}, "Spectate a player.", function(args)
+		if viewloop then viewloop:Disconnect() viewloop = nil end
 		local vctms = findplr(args[1])
 		local plr = vctms[1]
 		viewing = true
+		exec("thirdp")
+		viewloop = rs.Heartbeat:Connect(function()
 		if plr and plr.Character and plr.Character.Humanoid then
 			workspace.CurrentCamera.CameraSubject = plr.Character.Humanoid
-			exec("thirdp")
 		end
 	end)
+end)
 	addcmd("unview", "Stop viewing a player.", function()
-		if not viewing and p.Character and p.Character.Humanoid then
-			notif("Kruel", "You are currently not viewing a player.", 3)
-		else
+		if p.Character and p.Character.Humanoid then
+			if viewloop then viewloop:Disconnect() viewloop = nil end
 			viewing = false
 			workspace.CurrentCamera.CameraSubject = p.Character.Humanoid
 		end
@@ -844,6 +945,9 @@ end)
 			exec(cmd)
 			task.wait(0.05)
 		end
+	end)
+	addcmd("r6", "Switches to R6 animations (R15 Only).", function()
+		loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-R6-Animations-on-R15-168652"))()
 	end)
 	addcmd({"clicktp", "ctp"}, "Hold CTRL and click to teleport.", function()
 		local mouse = p:GetMouse()
@@ -935,7 +1039,7 @@ end)
 		noclipping = false
 		infjumping = false
 		if noclipconn then noclipconn:Disconnect() end
-		if plrconn then plrconn:Disconnect() end
+		if plrconn then plrconn:Disconnect() end -- holy shit undefined global fucking pmo
 		if ctpconn then ctpconn:Disconnect() end
 		script:Destroy()
 	end)
@@ -971,6 +1075,7 @@ end)
 		billboard:Destroy()
 	end
 end
+	-- genuinely amazing logic btw yes its not perfect but who gives a FUCK
 	function ESP(plr, char)
 		if plr == p then return end
 		NOESP(plr)
@@ -1045,10 +1150,7 @@ end
 			highlight.OutlineColor = Color3.fromRGB(0, 0, 0)
 			highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 		end
-		highlight.FillColor = BrickColor.new(
-			plr.TeamColor == game.Players.LocalPlayer.TeamColor and "Bright green" or "Bright red"
-		).Color
-	end
+		highlight.FillColor = plr.TeamColor.Color
 		local health = targetHum.Health
 		local maxhealth = targetHum.MaxHealth
 		local percentage = math.clamp(health / maxhealth, 0, 1)
@@ -1063,13 +1165,14 @@ end
 		else
 			hfr.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
 		end
-	end)
+	end
+end)
 end
 
 local esping = false
 local esploop = false
 local respawnconns = {}
-addcmd("esp", "Enables ESP", function()
+addcmd("esp", "Enables ESP", function() -- was so ready to rip my hair out for this one
     if esploop then return end
     esping = true
     esploop = true
@@ -1100,12 +1203,28 @@ addcmd("esp", "Enables ESP", function()
             end)
         end
     end)
+	task.spawn(function()
+		while esping do
+			task.wait(1)
+			if not esping then break end
+			for _, plr in ipairs(game.Players:GetPlayers()) do
+				if plr ~= game.Players.LocalPlayer then
+					if plr.Character then
+						NOESP(plr)
+						ESP(plr, plr.Character)
+					end
+				end
+			end
+		end
+	end)
 end)
 addcmd("unesp", "Disables ESP", function()
     esping = false
 	esploop = false
     for _, plr in ipairs(game.Players:GetPlayers()) do
         NOESP(plr)
+		task.wait()
+		NOESP(plr)
         if respawnconns[plr] then
             respawnconns[plr]:Disconnect()
             respawnconns[plr] = nil
@@ -1369,8 +1488,14 @@ end)
 	addcmd("whatexecutor", "Identifies executor.", function()
 		notif("Kruel", "Your executor is: " .. executor or "identifyexecutor() not available.", 3)
 	end)
+	local fovloop = nil
 	addcmd("fov", "Changes FOV", function(args)
-		ts:Create(workspace.CurrentCamera, ti, {FieldOfView = tonumber(args[1])}):Play()
+		if fovloop then fovloop:Disconnect() fovloop = nil end
+		if args[1] and tonumber(args[1]) then
+			fovloop = rs.RenderStepped:Connect(function()
+			workspace.CurrentCamera.FieldOfView = args[1]
+			end)
+		end
 	end)
 	addcmd("walkfling", "Flings anyone you touch.", function()
 		local humanoid = p.Character:FindFirstChildWhichIsA("Humanoid")
@@ -1556,7 +1681,7 @@ end)
 		local grav = tonumber(args[1])
 		workspace.Gravity = grav
 	end)
-	local plrconn
+	local plrconn = nil
 	addcmd("listen", "Listens to properties Added event.", function(args)
 		local target = tostring(args[1] or ""):lower()
 		local mode = tostring(args[2] or ""):lower()
@@ -1626,6 +1751,7 @@ end)
 		"/e point",
 		"/e wave"
 	}
+	-- bla bla bla
 	addcmd("antikillbrick", "Turns CanTouch to off on all parts", function()
 		for _, part in pairs(workspace:GetDescendants()) do
 			if part:IsA("BasePart") then
@@ -1659,6 +1785,7 @@ end)
 	local orbitradius = 5
 	local jumpsitconn = nil
 	local orbitconn = nil
+	local orbitheight = 8.5
 	addcmd("orbit", "Orbits around a player.", function(args)
 		local trgts = findplr(args[1])
 		local trgt = trgts[1]
@@ -1670,9 +1797,19 @@ end)
 			orbitconn = rs.Heartbeat:Connect(function()
 				local hrp = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
 				if trgt.Character and trgt.Character:FindFirstChild("HumanoidRootPart") and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+					if not trgt or not trgt.Character or not trgt.Character.HumanoidRootPart or not p.Character then
+								if orbitconn then orbitconn:Disconnect() end
+									exec("clip")
+									p.Character.Humanoid.PlatformStand = false
+									for i = 1, 5 do
+									p.Character.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+									end
+								p.Character.HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+						return
+					end
 					local offset = Vector3.new(
 						math.cos(rotangle) * orbitradius,
-						math.sin(rotangle) * 7 + 5,
+						math.sin(rotangle) * orbitheight + 5,
 						math.sin(rotangle) * orbitradius
 					)
 					local trgtpos = trgt.Character.HumanoidRootPart.Position
@@ -1694,6 +1831,9 @@ end)
 	end)
 	addcmd("orbitspeed", "Changes orbit speed.", function(args)
 		orbitangle = tonumber(args[1]) * 0.01 or 0.05
+	end)
+	addcmd("orbitheight", "Changes how far you go down/up while orbiting.", function(args)
+		orbitheight = tonumber(args[1]) or 8.5	
 	end)
 	addcmd("unorbit", "Stops orbiting.", function()
 		if orbitconn then orbitconn:Disconnect() end
@@ -1997,7 +2137,7 @@ local startPoss
 drgfr.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		draggingg = true
-		-- yayyyy line 2000 woohoo yay my biggest project (already was ez) to anyone seeing this: <3 (idk if this is line 2000 anymore maybe i update when i need to maybe not ezz)
+		-- yayyyy line 2000 woohoo yay my biggest project (already was ez) to anyone seeing this: <3 (idk if this is line 2000 anymore maybe i update when i need to maybe not ezz) ts is line 2114 now wow
 		dragStartt = input.Position
 		startPoss = frr.Position
 	end
@@ -2018,6 +2158,20 @@ end)
 addcmd({"cmds", "help"}, "Lists all commands.", function()
 	frr.Position = UDim2.new(0.5, -175, 0.5, -250)
 	frr.Visible = true
+end)
+addcmd("freeze", "Freezes you in place.", function()
+	local char = p.Character
+	if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp or not char then return end
+	hrp.Anchored = true
+end)
+addcmd("unfreeze", "Stops freeze.", function()
+	local char = p.Character
+	if not char then return end
+	local hrp = char.HumanoidRootPart
+	if not hrp or not char then return end
+	hrp.Anchored = false
 end)
 for cmdName, cmdData in pairs(cmds) do
 
@@ -2041,3 +2195,6 @@ for cmdName, cmdData in pairs(cmds) do
         addcmds(allNames, cmdData.Description, cmdData.Function)
     end
 end
+
+
+-- line 2200 wow
