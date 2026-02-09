@@ -71,7 +71,7 @@
 
 		repeat
 			local predicted = part.CFrame
-			predicted += Vector3.new(0, part.AssemblyLinearVelocity.Y, 0) * .22571696742069420
+			predicted += Vector3.new(0, part.AssemblyLinearVelocity.Y, 0) * .1626623422
 			predicted += (Vector3.new(part.AssemblyLinearVelocity.X, 0, part.AssemblyLinearVelocity.Z) / 2.6591)
 
 			char:PivotTo(predicted * CFrame.Angles(math.random() > .3 and 90 or -135, 90, -180))
@@ -831,16 +831,30 @@ hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
 end)
 local flashbackpos = nil
 local flashbackdied = nil
-
+local autoflashback = false
 p.CharacterAdded:Connect(function(char)
-	local humm = char:WaitForChild("Humanoid")
-	if flashbackdied then flashbackdied:Disconnect() end
-	flashbackdied = humm.Died:Connect(function()
-		local hrp = char:FindFirstChild("HumanoidRootPart")
-		if hrp then
-			flashbackpos = hrp.CFrame
-		end
-	end)
+    if autoflashback and flashbackpos then
+        task.spawn(function()
+            local hrp = char:WaitForChild("HumanoidRootPart", 5)
+            if hrp then
+                task.wait(0.2)
+				for i = 1, 25 do
+                hrp.CFrame = flashbackpos
+				task.wait(.01)
+				end
+            end
+        end)
+    end
+
+    local humm = char:WaitForChild("Humanoid")
+    if flashbackdied then flashbackdied:Disconnect() end
+    
+    flashbackdied = humm.Died:Connect(function()
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            flashbackpos = hrp.CFrame
+        end
+    end)
 end)
 addcmd("flashback", "Teleports to the last position you died.", function()
 	if not flashbackpos then
@@ -850,6 +864,12 @@ addcmd("flashback", "Teleports to the last position you died.", function()
 	if p.Character and p.Character.HumanoidRootPart then
 	p.Character.HumanoidRootPart.CFrame = flashbackpos
 	end
+end)
+addcmd("autoflashback", "Automatically teleports to the last position you died when you die.", function()
+	autoflashback = true
+end)
+addcmd("unautoflashback", "Stops autoflashback.", function()
+	autoflashback = false
 end)
 local orgdestroyheights = nil
 addcmd("antivoid", "Prevents you from falling into the void.", function()
@@ -914,6 +934,31 @@ end)
 			workspace.CurrentCamera.CameraSubject = plr.Character.Humanoid
 		end
 	end)
+end)
+local tpfreezeconn = nil
+addcmd("tpfreeze", "Freezes yourself using teleportation.", function()
+	if p and p.Character and p.Character.HumanoidRootPart then
+		local pos = p.Character.HumanoidRootPart.CFrame
+		tpfreezeconn = rs.RenderStepped:Connect(function()
+			if not p.Character or not p.Character.HumanoidRootPart then return end
+			p.Character.HumanoidRootPart.CFrame = pos
+		end)
+	end	
+end)
+addcmd("untpfreeze", "Stops tpfreeze.", function()
+	if tpfreezeconn then
+		tpfreezeconn:Disconnect()
+	end
+end)
+addcmd("antisit", "Prevents you from sitting.", function()
+	if p.Character and p.Character.Humanoid then
+		p.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+	end
+end)
+addcmd("unantisit", "Prevents you from sitting.", function()
+	if p.Character and p.Character.Humanoid then
+		p.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+	end
 end)
 	addcmd("unview", "Stop viewing a player.", function()
 		if p.Character and p.Character.Humanoid then
@@ -1046,9 +1091,13 @@ end)
 	addcmd({"bypasser", "chatbypasser", "bypass", "chatbypass"}, "Loads a chat bypasser script.", function()
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/fearlessd3v/TEAM-FEARLESS/refs/heads/main/fearless-chat-bypass"))()
 	end)
-	local esploops = {}
-	local respawnconns = {}
-	function NOESP(plr)
+local esploops = {}
+local respawnconns = {}
+local esping = false
+local playerAddedConn = nil
+local espRefreshLoop = nil
+
+function NOESP(plr)
 	if esploops[plr] then
 		esploops[plr]:Disconnect()
 		esploops[plr] = nil
@@ -1075,168 +1124,215 @@ end)
 		billboard:Destroy()
 	end
 end
-	-- genuinely amazing logic btw yes its not perfect but who gives a FUCK
-	function ESP(plr, char)
-		if plr == p then return end
-		NOESP(plr)
-		char = char or plr.Character
-		if not char then return end
-		if esploops[plr] then return end
-		if char:FindFirstChildOfClass("Highlight") then return end
-	local hum = char:WaitForChild("Humanoid", 2)
-	local root = char:WaitForChild("HumanoidRootPart", 2)
-	local head = char:WaitForChild("Head", 2)
 
-	if not (hum and root and head) then
-	return
-	end
-			local bg = Instance.new("BillboardGui")
-			bg.Parent = char:FindFirstChild("Head")
-			bg.Name = "usphind coding is ud asf"
-			bg.Adornee = char:FindFirstChild("Head")
-			bg.Size = UDim2.new(0, 100, 0, 150)
-			bg.StudsOffset = Vector3.new(0, 1, 0)
-			bg.AlwaysOnTop = true
-			local hfr = Instance.new("Frame")
-			hfr.Parent = bg
-			hfr.Size = UDim2.new(0, 100, 0, 8)
-			hfr.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-			hfr.BorderSizePixel = 0
-			hfr.Position = UDim2.new(0, 2.5, 0, 40)
-			hfr.ZIndex = 15
-			local hfr2 = Instance.new("Frame")
-			hfr2.Parent = bg
-			hfr2.Size = UDim2.new(0, 104.5, 0, 12)
-			hfr2.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-			hfr2.BorderSizePixel = 0
-			hfr2.Position = UDim2.new(0, 0, 0, 38)
-			local label = Instance.new("TextLabel")
-			label.Font = Enum.Font.SourceSansSemibold
-			label.TextColor3 = Color3.fromRGB(255, 255, 255)
-			label.BackgroundTransparency = 1
-			label.Parent = bg
-			label.Position = UDim2.new(0, 0, 0, -25)
-			label.TextSize = 20
-			label.TextStrokeTransparency = 0
-			label.ZIndex = 10
-			label.Text = "[" .. math.floor(char.Humanoid.Health) .. "HP] " .. plr.Name .. " [" .. math.floor((p.Character:WaitForChild("HumanoidRootPart").Position - char:FindFirstChild("HumanoidRootPart").Position).Magnitude) .. "M]"
-			label.Size = UDim2.new(0, 100, 0, 100)
-	local localChar = p.Character or p.CharacterAdded:Wait()
-	local localRoot = localChar:WaitForChild("HumanoidRootPart")
+function ESP(plr, char)
+	if plr == p then return end
+	
+	char = char or plr.Character
+	if not char then return end
+	if esploops[plr] then return end
+	
+	local hum = char:WaitForChild("Humanoid", 3)
+	local root = char:WaitForChild("HumanoidRootPart", 3)
+	local head = char:WaitForChild("Head", 3)
 
-	local targetHum = char:WaitForChild("Humanoid")
-	local targetRoot = char:WaitForChild("HumanoidRootPart")
+	if not (hum and root and head) then return end
+	
+	
+	local bg = Instance.new("BillboardGui")
+	bg.Parent = head
+	bg.Name = "usphind coding is ud asf"
+	bg.Adornee = head
+	bg.Size = UDim2.new(0, 100, 0, 150)
+	bg.StudsOffset = Vector3.new(0, 1, 0)
+	bg.AlwaysOnTop = true
+	
+	local hfr = Instance.new("Frame")
+	hfr.Parent = bg
+	hfr.Size = UDim2.new(0, 100, 0, 8)
+	hfr.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+	hfr.BorderSizePixel = 0
+	hfr.Position = UDim2.new(0, 2.5, 0, 40)
+	hfr.ZIndex = 15
+	
+	local hfr2 = Instance.new("Frame")
+	hfr2.Parent = bg
+	hfr2.Size = UDim2.new(0, 104.5, 0, 12)
+	hfr2.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	hfr2.BorderSizePixel = 0
+	hfr2.Position = UDim2.new(0, 0, 0, 38)
+	
+	local label = Instance.new("TextLabel")
+	label.Font = Enum.Font.SourceSansSemibold
+	label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	label.BackgroundTransparency = 1
+	label.Parent = bg
+	label.Position = UDim2.new(0, 0, 0, -25)
+	label.TextSize = 20
+	label.TextStrokeTransparency = 0
+	label.ZIndex = 10
+	label.Size = UDim2.new(0, 100, 0, 100)
+	
+	local highlight = Instance.new("Highlight")
+	highlight.Parent = char
+	highlight.Adornee = char
+	highlight.FillColor = plr.TeamColor.Color
+	highlight.OutlineColor = Color3.fromRGB(0, 0, 0)
+	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 
 	esploops[plr] = rs.Heartbeat:Connect(function()
-		if not char.Parent then NOESP(plr) return end
-		if not (char and char.Parent and targetHum and targetRoot and localRoot) then return end
-		if plr.DisplayName then
-		label.Text = "[" .. math.floor(targetHum.Health) .. "HP] " .. plr.DisplayName .. " (@" .. plr.Name .. ")" .. " [" .. math.floor((localRoot.Position - targetRoot.Position).Magnitude) .. "M]"
-		else
-			label.Text = "[" .. math.floor(targetHum.Health) .. "HP] " .. plr.Name .. " [" .. math.floor((localRoot.Position - targetRoot.Position).Magnitude) .. "M]"
+		if not char.Parent then 
+			NOESP(plr) 
+			return 
 		end
-		local distance = (localRoot.Position - targetRoot.Position).Magnitude
-		local highlight = char:FindFirstChildOfClass("Highlight")
+
+			local localChar = p.Character
+			if not localChar then
+		p.CharacterAdded:Wait()
+		localChar = p.Character
+	end
+	local localRoot = localChar:WaitForChild("HumanoidRootPart", 5)
+	if not localRoot then return end
+		
+		if not (char and char.Parent and hum and root and localRoot) then return end
+		
+		local distance = (localRoot.Position - root.Position).Magnitude
+		local displayName = plr.DisplayName ~= plr.Name and plr.DisplayName .. " (@" .. plr.Name .. ")" or plr.Name
+		label.Text = string.format("[%dHP] %s [%dM]", math.floor(hum.Health), displayName, math.floor(distance))
+		
+		highlight = char:FindFirstChildOfClass("Highlight")
 		if distance > 250 then
 			if highlight then
 				highlight:Destroy()
+				highlight = nil
 			end
-		elseif distance < 250 then
-			if not highlight then
-			highlight = Instance.new("Highlight")
-			highlight.Parent = char
-			highlight.Adornee = char
-			highlight.FillColor = BrickColor.new(plr.TeamColor == game.Players.LocalPlayer.TeamColor and "Bright green" or "Bright red").Color
-			highlight.OutlineColor = Color3.fromRGB(0, 0, 0)
-			highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-		end
-		highlight.FillColor = plr.TeamColor.Color
-		local health = targetHum.Health
-		local maxhealth = targetHum.MaxHealth
-		local percentage = math.clamp(health / maxhealth, 0, 1)
-		hfr.Size = UDim2.new(percentage, 0, 0, 8)
-
-		if health < maxhealth * 0.25 then
-			hfr.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-		elseif health < maxhealth * 0.5 then
-			hfr.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
-		elseif health < maxhealth * 0.6 then
-			hfr.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
 		else
-			hfr.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+			if not highlight then
+				highlight = Instance.new("Highlight")
+				highlight.Parent = char
+				highlight.Adornee = char
+				highlight.FillColor = plr.TeamColor.Color
+				highlight.OutlineColor = Color3.fromRGB(0, 0, 0)
+				highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+			end
+			
+			highlight.FillColor = plr.TeamColor.Color
+			
+			local percentage = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
+			hfr.Size = UDim2.new(percentage, 0, 0, 8)
+			
+			if percentage < 0.25 then
+				hfr.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+			elseif percentage < 0.5 then
+				hfr.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+			elseif percentage < 0.6 then
+				hfr.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+			else
+				hfr.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+			end
 		end
-	end
-end)
+	end)
 end
 
-local esping = false
-local esploop = false
-local respawnconns = {}
-addcmd("esp", "Enables ESP", function() -- was so ready to rip my hair out for this one
-    if esploop then return end
-    esping = true
-    esploop = true
-    for _, plr in ipairs(game.Players:GetPlayers()) do
-        if plr ~= game.Players.LocalPlayer then
-            NOESP(plr)
-            if plr.Character then
-                ESP(plr, plr.Character)
-            end
-            if not respawnconns[plr] then
-                respawnconns[plr] = plr.CharacterAdded:Connect(function(char)
-                    task.wait(0.1)
-                    if esping then
-                        ESP(plr, char)
-                    end
-                end)
+addcmd("esp", "Enables ESP", function()
+	if esping then 
+		notif("Kruel", "ESP already enabled", 2)
+		return 
+	end
+	
+	esping = true
+	
+	for _, plr in ipairs(game.Players:GetPlayers()) do
+		if plr ~= p then
+			task.spawn(function()
+				if plr.Character then
+					ESP(plr, plr.Character)
+				end
+			end)
+			
+			respawnconns[plr] = plr.CharacterAdded:Connect(function(char)
+				task.wait(0.2)
+				if esping then
+					ESP(plr, char)
+				end
+			end)
+		end
+	end
+	
+	playerAddedConn = game.Players.PlayerAdded:Connect(function(plr)
+		if plr == p then return end
+		
+		respawnconns[plr] = plr.CharacterAdded:Connect(function(char)
+			task.wait(0.2)
+			if esping then
+				ESP(plr, char)
 			end
-        end
-    end
-    game.Players.PlayerAdded:Connect(function(plr)
-        if plr == game.Players.LocalPlayer then return end
-        if not respawnconns[plr] then
-            respawnconns[plr] = plr.CharacterAdded:Connect(function(char)
-                task.wait(0.1)
-                if esping then
-                    ESP(plr, char)
-                end
-            end)
-        end
-    end)
-	task.spawn(function()
+		end)
+		
+		if plr.Character then
+			task.spawn(function()
+				ESP(plr, plr.Character)
+			end)
+		end
+	end)
+	
+	espRefreshLoop = task.spawn(function()
 		while esping do
-			task.wait(1)
+			task.wait(2)
 			if not esping then break end
+			
 			for _, plr in ipairs(game.Players:GetPlayers()) do
-				if plr ~= game.Players.LocalPlayer then
-					if plr.Character then
+				if plr ~= p and plr.Character then
+					local char = plr.Character
+					local head = char:FindFirstChild("Head")
+					local hasESP = head and head:FindFirstChild("usphind coding is ud asf")
+					
+					if not esploops[plr] or not hasESP then
 						NOESP(plr)
-						ESP(plr, plr.Character)
+						task.spawn(function()
+							ESP(plr, char)
+						end)
 					end
 				end
 			end
 		end
 	end)
+	
+	notif("Kruel", "ESP enabled", 2)
 end)
+
 addcmd("unesp", "Disables ESP", function()
-    esping = false
-	esploop = false
-    for _, plr in ipairs(game.Players:GetPlayers()) do
-        NOESP(plr)
-		task.wait()
+	esping = false
+	
+	if espRefreshLoop then
+		task.cancel(espRefreshLoop)
+		espRefreshLoop = nil
+	end
+	
+	if playerAddedConn then
+		playerAddedConn:Disconnect()
+		playerAddedConn = nil
+	end
+	
+	for _, plr in ipairs(game.Players:GetPlayers()) do
 		NOESP(plr)
-        if respawnconns[plr] then
-            respawnconns[plr]:Disconnect()
-            respawnconns[plr] = nil
-        end
-    end
+	end
+	
+	for plr, conn in pairs(respawnconns) do
+		conn:Disconnect()
+	end
+	respawnconns = {}
+	
+	for plr, conn in pairs(esploops) do
+		conn:Disconnect()
+	end
+	esploops = {}
+	
+	notif("Kruel", "ESP disabled", 2)
 end)
+
 game.Players.PlayerRemoving:Connect(function(plr)
-    NOESP(plr)
-    if respawnconns[plr] then
-        respawnconns[plr]:Disconnect()
-        respawnconns[plr] = nil
-    end
+	NOESP(plr)
 end)
 local antifalldamaging = false
 addcmd("antifalldamage", "Stops you from taking fall damage, may not work on other games other then Natural Disaster Survival.", function()
@@ -1721,6 +1817,10 @@ end)
 				end
 			end
 		end)
+	end)
+	addcmd({"freecam", "fc"}, "Lets you use freecam with Shift + P.", function()
+		loadstring(game:HttpGet("https://pastebin.com/raw/TJB21Kxy"))()
+		notif("Kruel", "Active! Press Shift + P to active.", 3)	
 	end)
 	addcmd("unantifling", "Stops antifling.", function()
 		antiflinging = false
