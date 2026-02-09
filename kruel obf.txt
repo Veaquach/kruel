@@ -1880,6 +1880,34 @@ end)
 			bv.MaxTorque = Vector3.new(0, math.huge, 0)
 		end
 	end)
+	local annoyconn = nil
+	addcmd("annoy", "Annoys a player.", function(args)
+		local trgts = findplr(args[1])
+		local trgt = trgts[1]
+		if trgt ~= p and trgt.Character and trgt.Character.HumanoidRootPart and p.Character and p.Character.HumanoidRootPart then
+			local hrp = p.Character.HumanoidRootPart
+			local thrp = trgt.Character.HumanoidRootPart
+			if not hrp or not thrp then return end
+			annoyconn = rs.Heartbeat:Connect(function()
+			local predicted = thrp.CFrame
+			predicted += Vector3.new(0, thrp.AssemblyLinearVelocity.Y, 0) * .2152321
+			predicted += (Vector3.new(thrp.AssemblyLinearVelocity.X, 0, thrp.AssemblyLinearVelocity.Z) / 2.152321)
+			hrp.CFrame = predicted * CFrame.Angles(math.random() > .3 and 90 or -135, 90, -180)
+			hrp.AssemblyAngularVelocity = Vector3.new(math.random(0, 75), math.random(0, 75), math.random(0, 75))
+			if thrp.AssemblyLinearVelocity.Magnitude > 100 then
+					annoyconn:Disconnect()
+				end
+			end)
+			notif("Kruel", "Annoying " .. trgt.Name .. ".", 3)
+		end
+	end)
+	addcmd("unannoy", "Stops annoying a player.", function()
+		if annoyconn then
+			annoyconn:Disconnect()
+			annoyconn = nil
+			notif("Kruel", "Stopped annoying.", 3)
+		end
+	end)
 	local sitconn = nil
 	local orbitangle = 0.05
 	local orbitradius = 5
