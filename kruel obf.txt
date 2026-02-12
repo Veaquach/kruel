@@ -5,6 +5,7 @@
     Reuploading, reselling, or claiming this work as your own is not permitted.
     If you share modified versions publicly, credit @Veaquach clearly in the description.
 
+	
     Version: v1.0.0
     Server: https://discord.gg/pymGxT7KXR
     Author: Veaquach
@@ -922,16 +923,31 @@ end)
 		noclipconn:Disconnect()
 	end)
 	local viewing = false
-	local viewloop = nil
+	local viewconn = nil
+	local leaveconn = nil
 	addcmd({"view", "spectate"}, "Spectate a player.", function(args)
-		if viewloop then viewloop:Disconnect() viewloop = nil end
 		local vctms = findplr(args[1])
-		local plr = vctms[1]
+		local plrr = vctms[1]
+		if not plrr then return end
 		viewing = true
 		exec("thirdp")
-		viewloop = rs.Heartbeat:Connect(function()
-		if plr and plr.Character and plr.Character.Humanoid then
-			workspace.CurrentCamera.CameraSubject = plr.Character.Humanoid
+		if viewconn then viewconn:Disconnect() viewconn = nil end
+		if leaveconn then leaveconn:Disconnect() leaveconn = nil end
+		if plrr and plrr.Character and plrr.Character.Humanoid then
+			workspace.CurrentCamera.CameraSubject = plrr.Character.Humanoid
+			notif("Kruel", "Now spectating " .. plrr.Name, 3)
+		end
+		viewconn = plrr.CharacterAdded:Connect(function(char)
+			if viewing then
+				char:WaitForChild("Humanoid", 5)
+				if char.Humanoid then
+					workspace.CurrentCamera.CameraSubject = char.Humanoid
+				end
+			end
+		end)
+		leaveconn = game.Players.PlayerRemoving:Connect(function(plr)
+			if plr == vctms[1] and p.Character and p.Character.Humanoid then
+			workspace.CurrentCamera.CameraSubject = p.Character.Humanoid
 		end
 	end)
 end)
@@ -962,7 +978,8 @@ addcmd("unantisit", "Prevents you from sitting.", function()
 end)
 	addcmd("unview", "Stop viewing a player.", function()
 		if p.Character and p.Character.Humanoid then
-			if viewloop then viewloop:Disconnect() viewloop = nil end
+			if viewconn then viewconn:Disconnect() viewconn = nil end
+			if leaveconn then leaveconn:Disconnect() leaveconn = nil end
 			viewing = false
 			workspace.CurrentCamera.CameraSubject = p.Character.Humanoid
 		end
@@ -1908,6 +1925,27 @@ end)
 			notif("Kruel", "Stopped annoying.", 3)
 		end
 	end)
+	local semiannoyconn = nil
+	addcmd("semiannoy", "Annoys a player lightly.", function(args)
+	local trgt = findplr(args[1])[1]
+	if trgt ~= p and trgt.Character and trgt.Character.HumanoidRootPart and p.Character and p.Character.HumanoidRootPart then
+		local hrp = p.Character.HumanoidRootPart
+		local thrp = trgt.Character.HumanoidRootPart
+		if not hrp or not thrp then return end
+		semiannoyconn = rs.Heartbeat:Connect(function()
+			local predicted = thrp.CFrame
+			predicted += Vector3.new(0, thrp.AssemblyLinearVelocity.Y, 0) * .2152321
+			predicted += (Vector3.new(thrp.AssemblyLinearVelocity.X, 0, thrp.AssemblyLinearVelocity.Z) / 2.152321)
+			hrp.CFrame = predicted * CFrame.new(math.random(-1.5, 1.5), math.random(-0.5, 0.5), math.random(-1.5, 1.5))
+		end)
+	end
+end)
+addcmd("unsemiannoy", "Stops lightly annoying a player.", function()
+	if semiannoyconn then
+		semiannoyconn:Disconnect()
+		semiannoyconn = nil
+	end
+end)
 	local sitconn = nil
 	local orbitangle = 0.05
 	local orbitradius = 5
@@ -2325,4 +2363,4 @@ for cmdName, cmdData in pairs(cmds) do
 end
 
 
--- line 2200 wow
+-- line 2400 soon (ts line 2366)
