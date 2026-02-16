@@ -71,9 +71,24 @@
 		workspace.FallenPartsDestroyHeight = 0/0
 
 		repeat
-			local predicted = part.CFrame
-			predicted += Vector3.new(0, part.AssemblyLinearVelocity.Y, 0) * .1626623422
-			predicted += (Vector3.new(part.AssemblyLinearVelocity.X, 0, part.AssemblyLinearVelocity.Z) / 2.6591)
+local velHistory = {}
+local historySize = 3
+
+table.insert(velHistory, part.AssemblyLinearVelocity)
+if #velHistory > historySize then
+    table.remove(velHistory, 1)
+end
+
+local avgVel = Vector3.zero
+for _, v in pairs(velHistory) do
+    avgVel += v
+end
+avgVel /= #velHistory
+
+local speed = avgVel.Magnitude
+local predictionMultiplier = math.clamp(speed / 16, 0.15, 0.4)
+
+local predicted = part.CFrame + (avgVel * predictionMultiplier)
 
 			char:PivotTo(predicted * CFrame.Angles(math.random() > .3 and 90 or -135, 90, -180))
 			hrp.Velocity = -Vector3.new(1e35, 1e250, 1e35)
@@ -236,6 +251,13 @@
 			ftw.Completed:Wait()
 			box:Destroy()
 		end)
+	end
+	local function getroot(plr)
+		local char = plr.Character
+		if not char then return end
+		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+		if not root then return end
+		return root
 	end
 	local function exec(cmd) -- easier then i thought
 		local args = string.split(cmd, " ")
@@ -649,8 +671,7 @@ addcmd({"fling", "kill"}, "Flings anyone you want.", function(args)
 				task.spawn(function()
 					while flinging do task.wait() end
 					Fling(hrp)
-					exec("view random")
-					exec("unview")
+					workspace.CurrentCamera.CameraSubject = p.Character.Humanoid
 					flung[trgt] = nil
 				end)
 			end
@@ -707,6 +728,11 @@ addcmd("goto", "Go to anyone.", function(args)
 		local vctms = findplr(args[1])
 		local trgt = vctms[1]
 		if trgt and trgt.Character and trgt.Character.HumanoidRootPart and p.Character and p.Character.HumanoidRootPart then
+		local hrp = p.Character.HumanoidRootPart
+        hrp.Velocity = Vector3.zero
+        hrp.RotVelocity = Vector3.zero
+        hrp.AssemblyLinearVelocity = Vector3.zero
+        hrp.AssemblyAngularVelocity = Vector3.zero
 			p.Character.HumanoidRootPart.CFrame = trgt.Character.HumanoidRootPart.CFrame
 		elseif not trgt then
 			notif("Kruel", "Player not found.", 3)
@@ -777,10 +803,18 @@ end)
 			infjumping = false
 		end		
 	end)
-	addcmd("antitrip", "Prevents you from tripping.", function()
-hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
-hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)		
-	end)
+addcmd("antitrip", "Prevents you from tripping.", function()
+	local hum = p.Character.Humanoid
+	hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+	hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+	exec("antisit")	
+end)
+addcmd("unantitrip", "Stops antitrip.", function()
+	local hum = p.Character.Humanoid
+	hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
+	hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
+	exec("unantisit")	
+end)
 	local spinflinging = false
 	local spinflingdied = nil
 	local bav = nil
@@ -916,6 +950,105 @@ end)
 			end
 		end)
 	end)
+	local bangAnim = nil
+	local bang = nil
+	local bangLoop = nil
+	local bangDied = nil
+	local function r15()
+		if p.Character:FindFirstChildOfClass("Humanoid").RigType == Enum.HumanoidRigType.R15 then
+			return true
+		end
+	end
+local bangAnim = nil
+local bang = nil
+local bangLoop = nil
+local bangDied = nil
+local function r15()
+    if p.Character:FindFirstChildOfClass("Humanoid").RigType == Enum.HumanoidRigType.R15 then
+        return true
+    end
+end
+addcmd("unbang", "Stops bang.", function()
+	if bang then
+		bang:Stop()
+		bangAnim:Destroy()
+		bangDied:Disconnect()
+		bangLoop:Disconnect()
+	end
+end)
+addcmd("bang", "Bangs a player.", function(args)
+    local vctms = findplr(args[1])
+    local plrr = vctms[1]
+    exec("unbang")
+    task.wait()
+    
+    if not plrr or not plrr.Character then 
+        notif("Kruel", "Player not found or no character", 3)
+        return 
+    end
+    
+    local humanoid = p.Character:FindFirstChildWhichIsA("Humanoid")
+    bangAnim = Instance.new("Animation")
+    bangAnim.AnimationId = not r15(p) and "rbxassetid://148840371" or "rbxassetid://5918726674"
+    bang = humanoid:LoadAnimation(bangAnim)
+    bang:Play(0.1, 1, 1)
+    bang:AdjustSpeed(args[2] or 3)
+    bangDied = humanoid.Died:Connect(function()
+        bang:Stop()
+        bangAnim:Destroy()
+        bangDied:Disconnect()
+        bangLoop:Disconnect()
+    end)
+    
+    local bangplr = plrr.Name
+    local bangOffset = CFrame.new(0, 0, 1.3)
+    local velhist = {}
+    local histsize = 3
+    
+    notif("Kruel", "Banging " .. bangplr, 3)
+    
+    bangLoop = rs.Heartbeat:Connect(function()
+        pcall(function()
+            local trgtplr = game.Players:FindFirstChild(bangplr)
+            if not trgtplr then return end
+            
+            local trgtchar = trgtplr.Character
+            if not trgtchar then return end
+            
+            local otherrt = trgtchar:FindFirstChild("HumanoidRootPart")
+            if not otherrt then return end
+            
+            local mychr = p.Character
+            if not mychr then return end
+            
+            local myrt = mychr:FindFirstChild("HumanoidRootPart")
+            if not myrt then return end
+            
+            table.insert(velhist, otherrt.AssemblyLinearVelocity)
+            if #velhist > histsize then
+                table.remove(velhist, 1)
+            end
+            
+            local avgvl = Vector3.zero
+            for _, v in pairs(velhist) do
+                avgvl += v
+            end
+            avgvl /= #velhist
+            
+            local spd = avgvl.Magnitude
+            local predmulti = math.clamp(spd / 16, 0.15, 0.4)
+            
+            local predpos = Vector3.new(
+                otherrt.Position.X + (avgvl.X * predmulti),
+                otherrt.Position.Y,
+                otherrt.Position.Z + (avgvl.Z * predmulti)
+            )
+            local predcf = CFrame.new(predpos, predpos + otherrt.CFrame.LookVector)
+            
+            myrt.CFrame = predcf * bangOffset
+        end)
+    end)
+end)
 	addcmd({"unnoclip", "clip"}, "Stops noclip.", function()
 		if noclipping == false then
 			notif("Kruel", "You are not currently noclipping.", 3)
@@ -1009,7 +1142,7 @@ end)
 		end
 	end)
 	addcmd("r6", "Switches to R6 animations (R15 Only).", function()
-		loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-R6-Animations-on-R15-168652"))()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/Veaquach/r6for15/refs/heads/main/r6"))()
 	end)
 	addcmd({"clicktp", "ctp"}, "Hold CTRL and click to teleport.", function()
 		local mouse = p:GetMouse()
@@ -1352,30 +1485,52 @@ game.Players.PlayerRemoving:Connect(function(plr)
 	NOESP(plr)
 end)
 local antifalldamaging = false
-addcmd("antifalldamage", "Stops you from taking fall damage, may not work on other games other then Natural Disaster Survival.", function()
-
-	local rs = game:GetService("RunService")
-local hb = rs.Heartbeat
-local rsd = rs.RenderStepped
-local lp = game.Players.LocalPlayer
-local z = Vector3.zero
-local function f(c)
-    local r = c:WaitForChild("HumanoidRootPart")
-    if r then
-        local con
-        con = hb:Connect(function()
-            if not r.Parent then
-                con:Disconnect()
-            end
-            local v = r.AssemblyLinearVelocity
-            r.AssemblyLinearVelocity = z
-            rsd:Wait()
-            r.AssemblyLinearVelocity = v
-        end)
-    end
+local fallconn = nil
+local fallcharconn = nil
+function noantifalldamage()
+	antifalldamaging = false
+	if fallconn then fallconn:Disconnect() end
+	fallconn = nil
+	if fallcharconn then fallcharconn:Disconnect() end
+	fallcharconn = nil
 end
-f(lp.Character)
-lp.CharacterAdded:Connect(f)	
+addcmd("antifalldamage", "Stops fall damage", function()
+    if antifalldamaging then 
+        antifalldamaging = false
+        if fallconn then fallconn:Disconnect() end
+        if fallcharconn then fallcharconn:Disconnect() end
+        notif("Kruel", "Anti-Fall Damage Disabled", 2)
+        return 
+    end
+
+    antifalldamaging = true
+    local lp = game.Players.LocalPlayer
+    local z = Vector3.zero
+
+    local function startanti(c)
+        local r = c:WaitForChild("HumanoidRootPart", 5)
+        if r then
+            if fallconn then fallconn:Disconnect() end
+            fallconn = rs.Heartbeat:Connect(function()
+                if not r.Parent or not antifalldamaging then
+                    fallconn:Disconnect()
+                    return
+                end
+                local v = r.AssemblyLinearVelocity
+                r.AssemblyLinearVelocity = z
+                rs.RenderStepped:Wait()
+                r.AssemblyLinearVelocity = v
+            end)
+        end
+    end
+
+    if lp.Character then startanti(lp.Character) end
+    fallcharconn = lp.CharacterAdded:Connect(startanti)
+    notif("Kruel", "Anti-Fall Damage Enabled", 2)
+end)
+addcmd("unantifalldamage", "Stops fall damage", function()
+	noantifalldamage()
+	notif("Kruel", "Anti-Fall Damage Disabled", 2)
 end)
 addcmd("flingtool", "Flings anyone you click.", function()
 	local tool = Instance.new("Tool")
@@ -1664,6 +1819,16 @@ end)
 		p.CameraMode = Enum.CameraMode.LockFirstPerson
 		p.CameraMaxZoomDistance = 0
 	end)
+	addcmd("invis", "Attempts to make you invisible.", function()
+		loadstring(game:HttpGet("https://pastebin.com/raw/kdeD1vik"))()
+		exec("hipheight 0.145")
+		exec("jumppower 25")
+		exec("tpwalk 2")
+		exec("antivoid")
+		exec("antitrip")
+		exec("antisit")
+		notif("Kruel", "Loaded! May not work perfectly, even if on your screen you are visible, might not be the same for others.", 3)
+	end)
 	addcmd("stretchres", "Horizontally stretches your camera. Usage: ;stretchres SCALE", function(args)
 		local scale = tonumber(args[1])
 		if not scale then
@@ -1684,6 +1849,14 @@ end)
 		getgenv().hi = "veaquach"
 
 		notif("Kruel", "Stretch applied! Scale: " .. scale, 3)
+	end)
+	addcmd("hipheight", "Changes your hip height.", function(args)
+		local height = tonumber(args[1])
+		if not height then
+			notif("Kruel", "Invalid argument. Usage: ;hipheight HEIGHT", 3)
+			return
+		end
+		p.Character.Humanoid.HipHeight = height
 	end)
 	addcmd({"resetstretch", "unstretch"}, "Resets camera stretch to normal.", function()
 		local Camera = workspace.CurrentCamera
@@ -1816,37 +1989,376 @@ end)
 			notif("Kruel", "Stopped listening.", 3)
 		end
 	end)
+	local antiflingcharadded = {}
 	local antiflinging = false
 	local cachedcollides = {}
-	addcmd("antifling", "Prevents you from getting flung by other people/", function()
+	addcmd("antifling", "Prevents you from getting flung by other people.", function()
 		if antifling then
 			antifling:Disconnect()
 			antifling = nil
 		end
-		antifling = rs.Stepped:Connect(function()
-			for _, player in pairs(game.Players:GetPlayers()) do
+		for i, player in pairs(game.Players:GetPlayers()) do
+			if player ~= p and player.Character then
+				for _, v in pairs(player.Character:GetDescendants()) do
+					if v:IsA("BasePart") then
+						if not cachedcollides[v] then
+							cachedcollides[v] = v.CanCollide
+						end
+						v.CanCollide = false
+					end
+				end
+			end
+		end
+		for i, v in pairs(game.Players:GetPlayers()) do
+			antiflingcharadded[v] = v.CharacterAdded:Connect(function(char)
+				task.wait(0.2)
+				for _, v in pairs(char:GetDescendants()) do
+					if v:IsA("BasePart") then
+						if not cachedcollides[v] then
+							cachedcollides[v] = v.CanCollide
+						end
+						v.CanCollide = false
+					end
+				end
+			end)
+		end
+		antifling = game.Players.PlayerAdded:Connect(function(player)
 				if player ~= p and player.Character then
 					for _, v in pairs(player.Character:GetDescendants()) do
 						if v:IsA("BasePart") then
-							v.CanCollide = false
-						end
+							if not cachedcollides[v] then
+								cachedcollides[v] = v.CanCollide
+							end
+						v.CanCollide = false
 					end
 				end
 			end
 		end)
 	end)
+newflinging = false
+addcmd("void", "New fling (BETA)", function(args)
+    local trgt = findplr(args[1])[1]
+    if trgt and trgt.Character and trgt.Character.HumanoidRootPart and trgt.Character.Humanoid and p.Character and p.Character.HumanoidRootPart then
+        if trgt.Character.Humanoid.SeatPart ~= nil then
+            notif("Kruel", "Player is sitting, cannot voidfling.", 3)
+            return
+        end
+        local wasfalldamaging = false
+        if antifalldamaging then
+            wasfalldamaging = true
+            noantifalldamage()
+        end
+        local hrp = p.Character.HumanoidRootPart
+        local part = trgt.Character.HumanoidRootPart
+        exec("antisit")
+        local tc = tick()
+        newflinging = true
+        local orgpos = hrp.CFrame
+        local fallenparts = workspace.FallenPartsDestroyHeight
+        local char = p.Character
+        workspace.FallenPartsDestroyHeight = 0/0
+        local orgsub = workspace.CurrentCamera.CameraSubject
+        workspace.CurrentCamera.CameraSubject = part.Parent.Humanoid
+        exec("walkfling")
+        exec("antitrip")
+        local orgmasses = {}
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then
+                orgmasses[v] = v.AssemblyMass
+                v.Massless = true
+            end
+        end
+        
+        local velhist = {}
+        local histsize = 3
+        
+        repeat
+            rs.Heartbeat:Wait()
+            if not newflinging or not part or not part.Parent then break end
+            table.insert(velhist, part.AssemblyLinearVelocity)
+            if #velhist > histsize then
+                table.remove(velhist, 1)
+            end
+            
+            local avgvl = Vector3.zero
+            for _, v in pairs(velhist) do
+                avgvl += v
+            end
+            avgvl /= #velhist
+            
+            local speed = avgvl.Magnitude
+            local predmulti = math.clamp(speed / 16, 0.15, 0.45)
+            
+            local predicted = part.CFrame + (avgvl * predmulti)
+            char:PivotTo(predicted)
+            
+            hrp.Velocity = Vector3.new(0, -1e200, 0)
+            hrp.RotVelocity = Vector3.new(1e200, 1e200, 1e200)
+            local targetHalfHeight = part.Size.Y / 2
+            local myHalfHeight = hrp.Size.Y / 2
+            local yOffset = targetHalfHeight - myHalfHeight + 1.15
+            
+            for i = 1, 5 do
+                hrp.CFrame = predicted * CFrame.new(
+                    math.random(-0.2, 0.2), 
+                    yOffset, 
+                    math.random(-0.2, 0.2)
+                )
+            end
+            
+        until (part.AssemblyLinearVelocity.Magnitude > 150) or (tick() - tc > 4) or not newflinging or not part
+        
+        newflinging = false
+        for part, mass in pairs(orgmasses) do
+            if part and part.Parent then
+                part.Massless = false
+            end
+        end
+        if wasfalldamaging then
+            exec("antifalldamage")
+			task.wait(.5)
+        end
+        hrp.Anchored = true
+        task.wait()
+        exec("unwalkfling")
+        exec("fly")
+        task.wait()
+        exec("unfly")
+        exec("unantitrip")
+        exec("unantisit")
+        hrp.Velocity = Vector3.zero
+        hrp.RotVelocity = Vector3.zero
+        hrp.AssemblyLinearVelocity = Vector3.zero
+        hrp.AssemblyAngularVelocity = Vector3.zero
+        hrp.CFrame = orgpos
+        hrp.Anchored = false
+        workspace.FallenPartsDestroyHeight = fallenparts
+        workspace.CurrentCamera.CameraSubject = orgsub
+        task.wait(0.01)
+        local hum = p.Character.Humanoid
+        hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
+        hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, true)
+        hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+        hum.PlatformStand = false
+        hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+        local hasdied = false
+        local diedconn = trgt.CharacterRemoving:Connect(function()
+            hasdied = true
+        end)
+        local remconn = trgt.CharacterRemoving:Connect(function() hasdied = true end)
+        task.wait(3)
+        diedconn:Disconnect()
+        remconn:Disconnect()
+        if not hasdied and part and part.Parent then
+            if part.AssemblyLinearVelocity.Magnitude < 50 and part.Position.Y > workspace.FallenPartsDestroyHeight then
+                notif("Kruel", trgt.Name .. " hasn't died.", 2)
+            else
+                notif("Kruel", trgt.Name .. " was voided.", 2)
+            end
+        else
+            notif("Kruel", trgt.Name .. " is confirmed dead.", 2)
+        end
+    end
+end)
+addcmd("flingui", "Opens the fling ui.", function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Veaquach/kruel/refs/heads/main/flingui"))() end)
+rocketing = false
+addcmd("rocket", "Rocket someone up.", function(args)
+    local trgt = findplr(args[1])[1]
+    if trgt and trgt.Character and trgt.Character.HumanoidRootPart and p.Character and p.Character.HumanoidRootPart then
+        local hrp = p.Character.HumanoidRootPart
+        local part = trgt.Character.HumanoidRootPart
+        local tc = tick()
+        rocketing = true
+        local orgpos = hrp.CFrame
+        local fallenparts = workspace.FallenPartsDestroyHeight
+        local char = p.Character
+        workspace.FallenPartsDestroyHeight = 0/0
+        local orgsub = workspace.CurrentCamera.CameraSubject
+        workspace.CurrentCamera.CameraSubject = part.Parent.Humanoid
+		exec("walkfling")
+		exec("antitrip")
+        local orgmasses = {}
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then
+                orgmasses[v] = v.AssemblyMass
+                v.Massless = true
+            end
+        end
+        
+        local velhist = {}
+        local histsize = 3
+        
+        repeat
+            rs.Heartbeat:Wait()
+            
+            table.insert(velhist, part.AssemblyLinearVelocity)
+            if #velhist > histsize then
+                table.remove(velhist, 1)
+            end
+            local avgvl = Vector3.zero
+            for _, v in pairs(velhist) do
+                avgvl += v
+            end
+            avgvl /= #velhist
+            
+            local speed = avgvl.Magnitude
+            local predmulti = math.clamp(speed / 16, 0.15, 0.45)
+            
+            local predicted = part.CFrame
+            predicted += avgvl * predmulti
+            char:PivotTo(predicted)
+            
+            hrp.Velocity = Vector3.new(0, 250, 0)
+            hrp.RotVelocity = Vector3.new(250, 250, 250)
+            hrp.AssemblyLinearVelocity = Vector3.new(0, 250, 0)
+            hrp.AssemblyAngularVelocity = Vector3.new(250, 250, 250)
+            
+            for i = 1, 5 do
+                hrp.CFrame = predicted * CFrame.new(0, -2, 0)
+            end
+            
+        until part.AssemblyLinearVelocity.Magnitude > 75 or tick() - tc > 4
+        
+        rocketing = false
+        
+        for part, mass in pairs(orgmasses) do
+            if part and part.Parent then
+                part.Massless = false
+            end
+        end
+        
+        hrp.Anchored = true
+        task.wait()
+		exec("unwalkfling")
+		exec("fly")
+		task.wait()
+		exec("unfly")
+		exec("unantitrip")
+        hrp.Velocity = Vector3.zero
+        hrp.RotVelocity = Vector3.zero
+        hrp.AssemblyLinearVelocity = Vector3.zero
+        hrp.AssemblyAngularVelocity = Vector3.zero
+        hrp.CFrame = orgpos
+        hrp.Anchored = false
+        workspace.FallenPartsDestroyHeight = fallenparts
+        workspace.CurrentCamera.CameraSubject = orgsub
+        task.wait(0.01)
+        hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
+        hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, true)
+        hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+		hum.PlatformStand = false
+        hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+    end
+end)
+addcmd("superrocket", "Rocket someone up very high.", function(args)
+    local trgt = findplr(args[1])[1]
+    if trgt and trgt.Character and trgt.Character.HumanoidRootPart and p.Character and p.Character.HumanoidRootPart then
+        local hrp = p.Character.HumanoidRootPart
+        local part = trgt.Character.HumanoidRootPart
+        local tc = tick()
+        rocketing = true
+        local orgpos = hrp.CFrame
+        local fallenparts = workspace.FallenPartsDestroyHeight
+        local char = p.Character
+        workspace.FallenPartsDestroyHeight = 0/0
+        local orgsub = workspace.CurrentCamera.CameraSubject
+        workspace.CurrentCamera.CameraSubject = part.Parent.Humanoid
+		exec("walkfling")
+		exec("antitrip")
+        local orgmasses = {}
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then
+                orgmasses[v] = v.AssemblyMass
+                v.Massless = true
+            end
+        end
+        
+        local velhist = {}
+        local histsize = 3
+        
+        repeat
+            rs.Heartbeat:Wait()
+            
+            table.insert(velhist, part.AssemblyLinearVelocity)
+            if #velhist > histsize then
+                table.remove(velhist, 1)
+            end
+            local avgvl = Vector3.zero
+            for _, v in pairs(velhist) do
+                avgvl += v
+            end
+            avgvl /= #velhist
+            
+            local speed = avgvl.Magnitude
+            local predmulti = math.clamp(speed / 16, 0.15, 0.45)
+            
+            local predicted = part.CFrame
+            predicted += avgvl * predmulti
+            char:PivotTo(predicted)
+            
+            hrp.Velocity = Vector3.new(0, 1250, 0)
+            hrp.RotVelocity = Vector3.new(1250, 1250, 1250)
+            hrp.AssemblyLinearVelocity = Vector3.new(0, 1250, 0)
+            hrp.AssemblyAngularVelocity = Vector3.new(1250, 1250, 1250)
+            
+            for i = 1, 5 do
+                hrp.CFrame = predicted * CFrame.new(0, -2, 0)
+            end
+            
+        until part.AssemblyLinearVelocity.Magnitude > 75 or tick() - tc > 4
+        
+        rocketing = false
+        
+        for part, mass in pairs(orgmasses) do
+            if part and part.Parent then
+                part.Massless = false
+            end
+        end
+        
+        hrp.Anchored = true
+        task.wait()
+		exec("unwalkfling")
+		exec("fly")
+		task.wait()
+		exec("unfly")
+		exec("unantitrip")
+        hrp.Velocity = Vector3.zero
+        hrp.RotVelocity = Vector3.zero
+        hrp.AssemblyLinearVelocity = Vector3.zero
+        hrp.AssemblyAngularVelocity = Vector3.zero
+        hrp.CFrame = orgpos
+        hrp.Anchored = false
+        workspace.FallenPartsDestroyHeight = fallenparts
+        workspace.CurrentCamera.CameraSubject = orgsub
+        task.wait(0.01)
+        hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
+        hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, true)
+        hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+		hum.PlatformStand = false
+        hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+    end
+end)
 	addcmd({"freecam", "fc"}, "Lets you use freecam with Shift + P.", function()
 		loadstring(game:HttpGet("https://pastebin.com/raw/TJB21Kxy"))()
 		notif("Kruel", "Active! Press Shift + P to active.", 3)	
 	end)
 	addcmd("unantifling", "Stops antifling.", function()
 		antiflinging = false
-		for _, v in pairs(cachedcollides) do
-			if v:IsA("BasePart") then
-				v.CanCollide = original or true
+		for player, conn in pairs(antiflingcharadded) do
+			if conn then
+				conn:Disconnect()
+			end
+		end
+		for part, val in pairs(cachedcollides) do
+			if part and part.Parent then
+				part.CanCollide = val or true
 			end
 		end
 		cachedcollides = {}
+		if antifling then
+        	antifling:Disconnect()
+        	antifling = nil
+    	end
 	end)
 	addcmd("cmdcount", "Lists how much commands Kruel has. (Number)", function()
 		local cmdss = {}
