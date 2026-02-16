@@ -1820,7 +1820,7 @@ end)
 		p.CameraMaxZoomDistance = 0
 	end)
 	addcmd("invis", "Attempts to make you invisible.", function()
-		loadstring(game:HttpGet("https://pastebin.com/raw/MrQLGR49"))()
+		loadstring(game:HttpGet("https://pastebin.com/raw/X20V7VMw"))()
 		if r15() == false then
 			notif("Kruel", "You are not R15.", 3)
 		end
