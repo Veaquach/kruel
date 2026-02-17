@@ -6,10 +6,11 @@
     If you share modified versions publicly, credit @Veaquach clearly in the description.
 
 	
-    Version: v1.5.1
+    Version: v1.5.5
     Server: https://discord.gg/pymGxT7KXR
     Author: Veaquach
 ]]
+	local start = os.clock()
 	local crg = game:GetService("CoreGui") -- when on executor
 	local pg = game.Players.LocalPlayer:WaitForChild("PlayerGui") -- when in studio
 	if crg:FindFirstChild("kruelty") then -- game:GetService("CoreGui"):FindFirstChild("kruelty")
@@ -155,103 +156,198 @@ local predicted = part.CFrame + (avgVel * predictionMultiplier)
 		s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 		s.Parent = el
 	end
-	local notih = Instance.new("Frame")
-	notih.Size = UDim2.new(0, 308, 0.8, 0)
-	notih.AnchorPoint = Vector2.new(0.935, 0.38)
-	notih.Position = UDim2.new(1, -20, 0.5, 0)
-	notih.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-	notih.Parent = psg
-	notih.BackgroundTransparency = 1
-	notih.Visible = true
-	aui(notih, 14)
-	local notiul = Instance.new("UIListLayout")
-	notiul.Parent = notih
-	notiul.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	notiul.VerticalAlignment = Enum.VerticalAlignment.Bottom
-	notiul.SortOrder = Enum.SortOrder.LayoutOrder
-	notiul.Padding = UDim.new(0, 10)
-	local function fout(frame)
-		for v, child in ipairs(frame:GetDescendants()) do
-			if child:IsA("TextLabel") then
-				ts:Create(child, tii, {TextTransparency = 1}):Play()
-				ts:Create(child, tii, {BackgroundTransparency = 1}):Play()
-			elseif child:IsA("Frame") then
-				ts:Create(child, tii, {BackgroundTransparency = 1}):Play()
-			end
-			ts:Create(frame, tii, {BackgroundTransparency = 1}):Play()
+local notifholderpsg = Instance.new("ScreenGui")
+notifholderpsg.Name = "notifholder"
+notifholderpsg.Parent = game:GetService("CoreGui")
+notifholderpsg.ResetOnSpawn = false
+notifholderpsg.DisplayOrder = 2147483647
+local notifholder = Instance.new("Frame")
+notifholder.Name = "notifholderr"
+notifholder.Parent = notifholderpsg
+notifholder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+notifholder.Size = UDim2.new(.2, 0, 1, 0)
+notifholder.Position = UDim2.new(.8, 0, 0, 0)
+notifholder.BackgroundTransparency = 1
+local ull = Instance.new("UIListLayout")
+ull.Name = "ull"
+ull.Parent = notifholder
+ull.SortOrder = Enum.SortOrder.LayoutOrder
+ull.HorizontalAlignment = Enum.HorizontalAlignment.Right
+ull.Padding = UDim.new(0, 10)
+ull.VerticalAlignment = Enum.VerticalAlignment.Bottom
+local padding = Instance.new("UIPadding")
+padding.Name = "padding"
+padding.Parent = notifholder
+padding.PaddingTop = UDim.new(0, 10)
+padding.PaddingLeft = UDim.new(0, 10)
+padding.PaddingRight = UDim.new(0, 10)
+padding.PaddingBottom = UDim.new(0, 10)
+function aui(obj, rad)
+    local uic = Instance.new("UICorner")
+    uic.Parent = obj
+    uic.CornerRadius = UDim.new(0, rad)
+end
+local notis = 0
+local function notif(title, text, delay) -- no idea how i made it this good 🤣
+    if not title or not text then return end
+	notis = notis + 1
+    local isnotifying = true
+    local tick = os.clock()
+	local container = Instance.new("Frame")
+	local noticount = notifholder:GetChildren()
+	if #noticount > 9 then
+		noticount[1]:Destroy()
+	end
+    container.Name = "notif_container"
+    container.Parent = notifholder
+	container.LayoutOrder = -notis
+    container.BackgroundTransparency = 1
+    container.Size = UDim2.new(0, 300, 0, 0)
+    container.AutomaticSize = Enum.AutomaticSize.Y
+	container.ZIndex = 1
+    local notifbox = Instance.new("Frame")
+    notifbox.Name = "notifbox"
+    notifbox.Parent = container
+    notifbox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    notifbox.BorderSizePixel = 0
+	notifbox.Position = UDim2.new(0, 300, 0, 0)
+    notifbox.Size = UDim2.new(0, 300, 0, 0)
+    notifbox.AutomaticSize = Enum.AutomaticSize.Y
+    notifbox.ZIndex = 2
+    aui(notifbox, 12)
+    local timeleft = Instance.new("TextLabel")
+    timeleft.Name = "timeleft"
+    timeleft.Parent = notifbox
+    timeleft.BackgroundTransparency = 1
+    timeleft.Size = UDim2.new(0, 50, 0, 20)
+    timeleft.Position = UDim2.new(1, -50, 0, 0) 
+    timeleft.Text = string.format("%.2fs", delay)
+    timeleft.TextColor3 = Color3.fromRGB(150, 150, 150)
+    timeleft.TextSize = 12
+    timeleft.Font = Enum.Font.Code
+    timeleft.TextXAlignment = Enum.TextXAlignment.Right
+    timeleft.ZIndex = 3
+    local pad = Instance.new("UIPadding")
+    pad.Parent = notifbox
+    pad.PaddingTop = UDim.new(0, 10)
+    pad.PaddingBottom = UDim.new(0, 20)
+    pad.PaddingRight = UDim.new(0, 10)
+    pad.PaddingLeft = UDim.new(0, 10)
+    local uistroke = Instance.new("UIStroke")
+    uistroke.Parent = notifbox
+    uistroke.Thickness = 3.5
+    uistroke.Color = Color3.fromRGB(255, 255, 255)
+    uistroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    local grad = Instance.new("UIGradient")
+	grad.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(75, 75, 75)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(215, 215, 215))
+	}
+	grad.Parent = uistroke
+    local notiftitle = Instance.new("TextLabel")
+    notiftitle.Name = "notiftitle"
+    notiftitle.Parent = notifbox
+    notiftitle.BackgroundTransparency = 1
+    notiftitle.Size = UDim2.new(1, 0, 0, 25)
+    notiftitle.Text = title
+    notiftitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    notiftitle.TextSize = 18
+    notiftitle.Font = Enum.Font.BuilderSansBold
+    notiftitle.TextXAlignment = Enum.TextXAlignment.Left
+    notiftitle.ZIndex = 2
+    local notiftext = Instance.new("TextLabel")
+    notiftext.Name = "notiftext"
+    notiftext.Parent = notifbox
+    notiftext.BackgroundTransparency = 1
+    notiftext.Position = UDim2.new(0, 0, 0, 30)
+    notiftext.Size = UDim2.new(1, 0, 0, 0)
+    notiftext.AutomaticSize = Enum.AutomaticSize.Y
+    notiftext.Text = text
+    notiftext.TextColor3 = Color3.fromRGB(200, 200, 200)
+    notiftext.TextSize = 15
+    notiftext.TextWrapped = true
+    notiftext.Font = Enum.Font.BuilderSansMedium
+    notiftext.TextXAlignment = Enum.TextXAlignment.Left
+    notiftext.ZIndex = 2
+	notiftext.RichText = true
+    local notifline = Instance.new("Frame")
+    notifline.Name = "notifline"
+    notifline.Parent = notifbox
+    notifline.BackgroundColor3 = Color3.fromRGB(40, 70, 200)
+    notifline.BorderSizePixel = 0
+    notifline.Size = UDim2.new(1, 0, 0, 4)
+    notifline.Position = UDim2.new(0, 0, 1, 10) 
+    notifline.AnchorPoint = Vector2.new(0, 1)
+    notifline.ZIndex = 3
+    aui(notifline, 8)
+    local notifline2 = Instance.new("Frame")
+    notifline2.Name = "notifline2"
+    notifline2.Parent = notifbox
+    notifline2.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    notifline2.BorderSizePixel = 0
+    notifline2.Size = UDim2.new(1, 0, 0, 4)
+    notifline2.Position = UDim2.new(0, 0, 1, 10) 
+    notifline2.AnchorPoint = Vector2.new(0, 1)
+    notifline2.ZIndex = 2
+    aui(notifline2, 8)
+	local rs = game:GetService("RunService")
+    local taskfunction = task.spawn(function()
+        while isnotifying do
+            local elapsed = os.clock() - tick
+            local remaining = math.max(0, delay - elapsed)
+            
+            timeleft.Text = "Click to dismiss " .. string.format("%.2fs", remaining)
+            
+            if remaining <= 0 then break end
+			task.wait()
+        end
+    end)
+	local tiiii = TweenInfo.new(.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+	local ts = game:GetService("TweenService")
+	local tii = TweenInfo.new(delay, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+	local ti = TweenInfo.new(.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	local tiii = TweenInfo.new(.25, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+	local clickconn = nil
+	clickconn = notifbox.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			isnotifying = false
+			ts:Create(notifbox, tiiii, {Position = UDim2.new(0, 400, 0, 0)}):Play()
+			container.Size = UDim2.new(0, 300, 0, container.AbsoluteSize.Y)
+			container.AutomaticSize = Enum.AutomaticSize.None
+			ts:Create(container, ti, {Size = UDim2.new(0, 300, 0, 0)}):Play()
+			task.wait(.2)
+			container:Destroy()
+			task.cancel(taskfunction)
+			clickconn:Disconnect()
 		end
-	end
-	local function notif(tt, t, d)
-		local box = Instance.new("Frame") -- cardboard box yes
-		box.Size = UDim2.new(1, -10, 0, 125)
-		box.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-		box.Parent = notih
-		local txtt = Instance.new("TextLabel") -- omg ez
-		txtt.Size = UDim2.new(0, 290, 0, 35)
-		txtt.Text = tt
-		txtt.Position = UDim2.new(0, 6, 0, 12)
-		txtt.BackgroundColor3 = Color3.fromRGB(165, 165, 165)
-		txtt.ZIndex = 2
-		txtt.BackgroundTransparency = 1
-		txtt.Parent = box
-		txtt.TextColor3 = Color3.fromRGB(255, 255, 255)
-		txtt.TextSize = 12
-		txtt.BorderSizePixel = 0
-		txtt.TextSize = 12
-		txtt.TextXAlignment = Enum.TextXAlignment.Left
-		txtt.TextYAlignment = Enum.TextYAlignment.Top
-		txtt.TextWrapped = true
-		txtt.Font = Enum.Font.BuilderSansBold
-		txtt.TextScaled = true
-		local slider = Instance.new("Frame") -- sliding slide ez
-		slider.Size = UDim2.new(0, 290, 0, 15)
-		slider.BackgroundColor3 = theme.Title
-		slider.Position = UDim2.new(0, 5, 0, 100)
-		slider.ZIndex = 2
-		slider.Parent = box
-		slider.BorderSizePixel = 0
-		aui(slider, 16)
-		local sliderr = Instance.new("Frame") -- sliding slide ez
-		sliderr.Size = UDim2.new(0, 290, 0, 15)
-		sliderr.BackgroundColor3 = Color3.fromRGB(225, 225, 225)
-		sliderr.Position = UDim2.new(0, 5, 0, 100)
-		sliderr.ZIndex = 1
-		sliderr.Parent = box
-		sliderr.BorderSizePixel = 0
-		aui(sliderr, 16)
-		local grad2 = Instance.new("UIGradient")
-		grad2.Color = ColorSequence.new{
-			ColorSequenceKeypoint.new(0, theme.Title),
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(215, 215, 215))
-		}
-		grad2.Parent = slider
-		local txtth = Instance.new("Frame")
-		txtth.Parent = txtt
-		aui(txtth, 10)
-		txtth.Size = UDim2.new(0, 290, 0, 40)
-		txtth.Position = UDim2.new(0, -2, 0, -3)
-		txtth.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-		local txt = Instance.new("TextLabel")
-		txt.Size = UDim2.new(0, 290, 0, 45)
-		txt.Position = UDim2.new(0, 8, 0, 53)
-		txt.TextYAlignment = Enum.TextYAlignment.Top
-		txt.TextXAlignment = Enum.TextXAlignment.Left
-		txt.Font = Enum.Font.GothamBold
-		txt.TextWrapped = true
-		txt.BackgroundTransparency = 1
-		txt.TextColor3 = Color3.new(1, 1, 1)
-		txt.Text = t
-		txt.TextSize = 15
-		txt.Parent = box
-		local ti = TweenInfo.new(d, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-		local ftw = ts:Create(slider, ti, {Size = UDim2.new(0, 0, 0, 15)}) -- ts was wild it worked first try im crine
-		ftw:Play()
-		task.delay(d, function()
-			fout(box)
-			ftw.Completed:Wait()
-			box:Destroy()
-		end)
-	end
+		return
+	end)
+	task.spawn(function()
+	ts:Create(notifbox, ti, {Position = UDim2.new(0, -35, 0, 0)}):Play()
+	task.wait(.2)
+	ts:Create(notifbox, tiii, {Position = UDim2.new(0, 25, 0, 0)}):Play()
+	task.wait(.2)
+	ts:Create(notifbox, tiiii, {Position = UDim2.new(0, 0, 0, 0)}):Play()
+	end)
+    local ftw = ts:Create(notifline, tii, {Size = UDim2.new(0, 0, 0, 4)})
+	if not isnotifying then return end
+    task.spawn(function()
+	if not isnotifying then return end
+    ftw:Play()
+    ftw.Completed:Wait()
+	if not isnotifying then return end
+	ts:Create(notifbox, tiiii, {Position = UDim2.new(0, 400, 0, 0)}):Play()
+	container.Size = UDim2.new(0, 300, 0, container.AbsoluteSize.Y)
+	container.AutomaticSize = Enum.AutomaticSize.None
+	ts:Create(container, tiii, {Size = UDim2.new(0, 300, 0, 0)}):Play()
+	task.wait(.2)
+	if not isnotifying then return end
+    container:Destroy()
+	task.cancel(taskfunction)
+    isnotifying = false
+	clickconn:Disconnect()
+	end)
+end
 	local function getroot(plr)
 		local char = plr.Character
 		if not char then return end
@@ -301,6 +397,7 @@ local predicted = part.CFrame + (avgVel * predictionMultiplier)
 	mlogo.Parent = fr
 	ts:Create(onsfr, ti, {BackgroundTransparency = 1}):Play()
 	ts:Create(logo, ti, {ImageTransparency = 1}):Play()
+	task.spawn(function()
 	task.wait(.8)
 	onsfr.Visible = false
 	ts:Create(fr, tii, {Position = UDim2.new(0, 0, 0.985, 0)}):Play()
@@ -311,6 +408,7 @@ local predicted = part.CFrame + (avgVel * predictionMultiplier)
 		if dragging == true then return end
 		ts:Create(fr, tii, {Position = UDim2.new(0, fr.Position.X.Offset, .985, 0)}):Play()
 	end)
+end)
 	local drg = Instance.new("TextLabel")
 	drg.BackgroundColor3 = theme.Title
 	drg.Size = UDim2.new(0, 250, 0, 20)
@@ -532,7 +630,6 @@ local predicted = part.CFrame + (avgVel * predictionMultiplier)
 		setclipboard("https://discord.gg/pymGxT7KXR")
 		notif("Kruel", "Discord invite link copied to clipboard!", 3)
 	end)
-	notif("Kruel", "Kruel Admin loaded! Please consider joining our server! (;discord)", 5)
 	local noclipping = false
 	local infjumping = false
 	uis.InputBegan:Connect(function(input, gameProcessed)
@@ -774,9 +871,7 @@ end)
 		local title = args[1]
 		local text = args[2]
 		local duration = tonumber(args[3])
-		if title and text then
-			notif(title, text, duration)
-		end
+		notif((title or "No text provided."), (text or "No text provided."), (duration or 3))
 	end)
 	addcmd({"reset", "re"}, "Resets character.", function()
 		if p.Character and p.Character.Head then
@@ -1819,11 +1914,41 @@ end)
 		p.CameraMode = Enum.CameraMode.LockFirstPerson
 		p.CameraMaxZoomDistance = 0
 	end)
+	function highlightplr(plr)
+		local char = plr.Character
+		if char then
+			local highlight = Instance.new("Highlight")
+			highlight.Parent = char
+			highlight.Adornee = char
+			highlight.FillColor = Color3.new(1, 1, 1)
+			highlight.OutlineColor = Color3.fromRGB(0, 0, 0)
+			highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+			local billboard = Instance.new("BillboardGui")
+			billboard.Parent = plr.Character.HumanoidRootPart
+			billboard.Name = "usphind coding is ud"
+			billboard.Size = UDim2.new(1, 0, 1, 0)
+			billboard.StudsOffset = Vector3.new(0, 5, 0)
+			billboard.AlwaysOnTop = true
+			local frame = Instance.new("Frame")
+			frame.Parent = billboard
+			frame.Size = UDim2.new(1, 0, 1, 0)
+			frame.BackgroundTransparency = 1
+			local textlabel = Instance.new("TextLabel")
+			textlabel.Parent = frame
+			textlabel.Text = "YOU ARE UNDERGROUND,\n NO ONE CAN SEE YOU.\n(p.s. people can't see this text)"
+			textlabel.Font = Enum.Font.GothamBold
+			textlabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+			textlabel.BackgroundTransparency = 1
+			textlabel.Size = UDim2.new(1, 0, 1, 0)
+			textlabel.TextSize = 15
+		end
+	end
 	addcmd("invis", "Attempts to make you invisible.", function()
 		loadstring(game:HttpGet("https://pastebin.com/raw/X20V7VMw"))()
 		if r15() == false then
 			notif("Kruel", "You are not R15.", 3)
 		end
+		highlightplr(p)
 		exec("tpwalk 2")
 		exec("antivoid")
 		exec("antitrip")
@@ -2876,5 +3001,5 @@ for cmdName, cmdData in pairs(cmds) do
 end
 
 
--- line 3000 soon (ts line 2879)
-
+-- a little bit of flexing optimization flexing here
+notif("Kruel", "Kruel Admin loaded, please consider joining our server! (;discord) \nLoading time: " .. string.format("%.4f", (os.clock() - start)) .. "s", 5)
