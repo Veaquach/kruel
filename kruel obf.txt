@@ -1244,8 +1244,8 @@ end)
 local esploops = {}
 local respawnconns = {}
 local esping = false
-local playerAddedConn = nil
-local espRefreshLoop = nil
+local playeradded = nil
+local esprefloop = nil
 
 function NOESP(plr)
 	if esploops[plr] then
@@ -1409,7 +1409,7 @@ addcmd("esp", "Enables ESP", function()
 		end
 	end
 	
-	playerAddedConn = game.Players.PlayerAdded:Connect(function(plr)
+	playeradded = game.Players.PlayerAdded:Connect(function(plr)
 		if plr == p then return end
 		
 		respawnconns[plr] = plr.CharacterAdded:Connect(function(char)
@@ -1426,7 +1426,7 @@ addcmd("esp", "Enables ESP", function()
 		end
 	end)
 	
-	espRefreshLoop = task.spawn(function()
+	esprefloop = task.spawn(function()
 		while esping do
 			task.wait(2)
 			if not esping then break end
@@ -1454,14 +1454,14 @@ end)
 addcmd("unesp", "Disables ESP", function()
 	esping = false
 	
-	if espRefreshLoop then
-		task.cancel(espRefreshLoop)
-		espRefreshLoop = nil
+	if esprefloop then
+		task.cancel(esprefloop)
+		esprefloop = nil
 	end
 	
-	if playerAddedConn then
-		playerAddedConn:Disconnect()
-		playerAddedConn = nil
+	if playeradded then
+		playeradded:Disconnect()
+		playeradded = nil
 	end
 	
 	for _, plr in ipairs(game.Players:GetPlayers()) do
@@ -2876,5 +2876,5 @@ for cmdName, cmdData in pairs(cmds) do
 end
 
 
--- line 2400 soon (ts line 2366)
+-- line 3000 soon (ts line 2879)
 
