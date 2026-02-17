@@ -6,7 +6,7 @@
     If you share modified versions publicly, credit @Veaquach clearly in the description.
 
 	
-    Version: v1.5.0
+    Version: v1.5.1
     Server: https://discord.gg/pymGxT7KXR
     Author: Veaquach
 ]]
@@ -2877,3 +2877,4 @@ end
 
 
 -- line 2400 soon (ts line 2366)
+
