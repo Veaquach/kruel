@@ -10,9 +10,10 @@
     Server: https://discord.gg/pymGxT7KXR
     Author: Veaquach
 ]]
+	local players = game:GetService("Players")
 	local start = os.clock()
 	local crg = game:GetService("CoreGui") -- when on executor
-	local pg = game.Players.LocalPlayer:WaitForChild("PlayerGui") -- when in studio
+	local pg = players.LocalPlayer:WaitForChild("PlayerGui") -- when in studio
 	if crg:FindFirstChild("kruelty") then -- game:GetService("CoreGui"):FindFirstChild("kruelty")
 		crg:FindFirstChild("kruelty"):Destroy() -- game:GetService("CoreGui"):FindFirstChild("kruelty")
 		flinging = false
@@ -48,8 +49,8 @@
 	local tp = game:GetService("TeleportService")
 	local jobid = game.JobId
 	local placeid = game.PlaceId
-	local version = "v.1.5.0"
-	local p = game.Players.LocalPlayer
+	local version = "v.1.5.5"
+	local p = players.LocalPlayer
 	local pg = p:WaitForChild("PlayerGui")
 	local psg = Instance.new("ScreenGui")
 	psg.Name = "kruelty"
@@ -58,7 +59,7 @@
 	psg.DisplayOrder = 2147483647
 	local flinging = false
 	function Fling(part)
-		local char = game.Players.LocalPlayer.Character
+		local char = players.LocalPlayer.Character
 		local hum = char:FindFirstChild("Humanoid")
 		hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
 		local hrp = char and char.PrimaryPart
@@ -127,21 +128,21 @@ local predicted = part.CFrame + (avgVel * predictionMultiplier)
 	local function findplr(plrnm)
 		local foundp = {}
 		if plrnm == "all" then
-			for _, v in pairs(game.Players:GetPlayers()) do
+			for _, v in pairs(players:GetPlayers()) do
 				table.insert(foundp, v)
 			end
 		elseif plrnm == "others" then
-			for _, v in pairs(game.Players:GetPlayers()) do
+			for _, v in pairs(players:GetPlayers()) do
 				if v ~= p then
 					table.insert(foundp, v) end
 			end
 		elseif plrnm == "me" then
 			table.insert(foundp, p)
 		elseif plrnm == "random" then
-			local plrs = game.Players:GetPlayers()
+			local plrs = players:GetPlayers()
 			table.insert(foundp, plrs[math.random(1, #plrs)])
 		else
-			for _, v in pairs(game.Players:GetPlayers()) do
+			for _, v in pairs(players:GetPlayers()) do
 				if v.Name:lower():sub(1, #plrnm) == plrnm:lower() or v.DisplayName:lower():sub(1, #plrnm) == plrnm:lower() then
 					table.insert(foundp, v)
 				end
@@ -579,6 +580,7 @@ end)
 	constraint2.Parent = description
 	aust(tooltip, Color3.fromRGB(165, 165, 165), 0.8)
 	local function addcmd(names, desc, func)
+		task.spawn(function()
 		if type(names) == "string" then
 			names = {names}
 		end
@@ -624,7 +626,8 @@ end)
 			description.Visible = false
 			tooltip.Visible = false
 		end)
-	end
+	end)
+end
 	-- woohoo commands!
 	addcmd("discord", "Join our Discord server!", function()
 		setclipboard("https://discord.gg/pymGxT7KXR")
@@ -641,7 +644,7 @@ end)
 		end
 	end)
 	addcmd("shiftlock", "Enables/disables Shiftlock.", function()
-		game.Players.LocalPlayer.DevEnableMouseLock = not game.Players.LocalPlayer.DevEnableMouseLock
+		players.LocalPlayer.DevEnableMouseLock = not players.LocalPlayer.DevEnableMouseLock
 	end)
 	addcmd("speed", "Adjusts WalkSpeed.", function(args)
 		local speed = tonumber(args[1])
@@ -719,7 +722,7 @@ end)
 		FLYING = false
 		if flyKeyDown then flyKeyDown:Disconnect() end
 		if flyKeyUp then flyKeyUp:Disconnect() end
-		local char = game.Players.LocalPlayer.Character
+		local char = players.LocalPlayer.Character
 		if char and char:FindFirstChildOfClass("Humanoid") then
 			char:FindFirstChildOfClass("Humanoid").PlatformStand = false
 		end
@@ -1035,7 +1038,7 @@ end)
 		noclipping = true
 		noclipconn = rs.Stepped:Connect(function() -- stfu "undefined global" 🤖🤖🤖 ts works fine
 			if p.Character then
-				for _, part in game.Players.LocalPlayer.Character:GetDescendants() do
+				for _, part in players.LocalPlayer.Character:GetDescendants() do
 					if part.Name ~= "Hitbox" then
 						if part:IsA("BasePart") then
 							part.CanCollide = false
@@ -1104,7 +1107,7 @@ addcmd("bang", "Bangs a player.", function(args)
     
     bangLoop = rs.Heartbeat:Connect(function()
         pcall(function()
-            local trgtplr = game.Players:FindFirstChild(bangplr)
+            local trgtplr = players:FindFirstChild(bangplr)
             if not trgtplr then return end
             
             local trgtchar = trgtplr.Character
@@ -1173,7 +1176,7 @@ end)
 				end
 			end
 		end)
-		leaveconn = game.Players.PlayerRemoving:Connect(function(plr)
+		leaveconn = players.PlayerRemoving:Connect(function(plr)
 			if plr == vctms[1] and p.Character and p.Character.Humanoid then
 			workspace.CurrentCamera.CameraSubject = p.Character.Humanoid
 		end
@@ -1264,7 +1267,7 @@ end)
 	end)
 	addcmd({"shop", "serverhop"}, "Goes to another server.", function()
 		local HttpService = game:GetService("HttpService")
-		local Players = game:GetService("Players")
+		local Players = players
 		local TeleportService = game:GetService("TeleportService")
 
 		if not p then
@@ -1487,7 +1490,7 @@ addcmd("esp", "Enables ESP", function()
 	
 	esping = true
 	
-	for _, plr in ipairs(game.Players:GetPlayers()) do
+	for _, plr in ipairs(players:GetPlayers()) do
 		if plr ~= p then
 			task.spawn(function()
 				if plr.Character then
@@ -1504,7 +1507,7 @@ addcmd("esp", "Enables ESP", function()
 		end
 	end
 	
-	playeradded = game.Players.PlayerAdded:Connect(function(plr)
+	playeradded = players.PlayerAdded:Connect(function(plr)
 		if plr == p then return end
 		
 		respawnconns[plr] = plr.CharacterAdded:Connect(function(char)
@@ -1526,7 +1529,7 @@ addcmd("esp", "Enables ESP", function()
 			task.wait(2)
 			if not esping then break end
 			
-			for _, plr in ipairs(game.Players:GetPlayers()) do
+			for _, plr in ipairs(players:GetPlayers()) do
 				if plr ~= p and plr.Character then
 					local char = plr.Character
 					local head = char:FindFirstChild("Head")
@@ -1559,7 +1562,7 @@ addcmd("unesp", "Disables ESP", function()
 		playeradded = nil
 	end
 	
-	for _, plr in ipairs(game.Players:GetPlayers()) do
+	for _, plr in ipairs(players:GetPlayers()) do
 		NOESP(plr)
 	end
 	
@@ -1576,7 +1579,7 @@ addcmd("unesp", "Disables ESP", function()
 	notif("Kruel", "ESP disabled", 2)
 end)
 
-game.Players.PlayerRemoving:Connect(function(plr)
+players.PlayerRemoving:Connect(function(plr)
 	NOESP(plr)
 end)
 local antifalldamaging = false
@@ -1589,6 +1592,14 @@ function noantifalldamage()
 	if fallcharconn then fallcharconn:Disconnect() end
 	fallcharconn = nil
 end
+addcmd("stopvelocity", "Stops velocity.", function()
+	for i = 1, 50 do
+	p.Character.HumanoidRootPart.Velocity = Vector3.zero
+	p.Character.HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
+	p.Character.HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
+	task.wait()
+	end
+end)
 addcmd("antifalldamage", "Stops fall damage", function()
     if antifalldamaging then 
         antifalldamaging = false
@@ -1599,7 +1610,7 @@ addcmd("antifalldamage", "Stops fall damage", function()
     end
 
     antifalldamaging = true
-    local lp = game.Players.LocalPlayer
+    local lp = players.LocalPlayer
     local z = Vector3.zero
 
     local function startanti(c)
@@ -1631,8 +1642,8 @@ addcmd("flingtool", "Flings anyone you click.", function()
 	local tool = Instance.new("Tool")
 	tool.RequiresHandle = false
 	tool.Name = "Fling Tool"
-	tool.Parent = game.Players.LocalPlayer.Backpack
-	local mouse = game.Players.LocalPlayer:GetMouse()
+	tool.Parent = players.LocalPlayer.Backpack
+	local mouse = players.LocalPlayer:GetMouse()
 	tool.Activated:Connect(function()
 		local hit = mouse.Target
 		local hum = hit:FindFirstAncestorWhichIsA("Model")
@@ -2098,12 +2109,12 @@ end)
 		local target = tostring(args[1] or ""):lower()
 		local mode = tostring(args[2] or ""):lower()
 		if target == "players" and (mode == "added" or mode == "joined" or mode == "join") then
-			local plrconn = game.Players.PlayerAdded:Connect(function(plr)
+			local plrconn = players.PlayerAdded:Connect(function(plr)
 				print("Player added: " .. (plr.Name or plr.DisplayName))
 			end)
 			notif("Kruel", "Listening to PlayerAdded events.", 3)
 		elseif target == "players" and (mode == "left" or mode == "removing" or mode == "leave") then
-			plrconn = game.Players.PlayerRemoving:Connect(function(plr)
+			plrconn = players.PlayerRemoving:Connect(function(plr)
 				print("Player left: " .. (plr.DisplayName or plr.Name))
 			end)
 			notif("Kruel", "Listening to PlayerRemoving events.", 3)
@@ -2123,7 +2134,7 @@ end)
 			antifling:Disconnect()
 			antifling = nil
 		end
-		for i, player in pairs(game.Players:GetPlayers()) do
+		for i, player in pairs(players:GetPlayers()) do
 			if player ~= p and player.Character then
 				for _, v in pairs(player.Character:GetDescendants()) do
 					if v:IsA("BasePart") then
@@ -2135,7 +2146,7 @@ end)
 				end
 			end
 		end
-		for i, v in pairs(game.Players:GetPlayers()) do
+		for i, v in pairs(players:GetPlayers()) do
 			antiflingcharadded[v] = v.CharacterAdded:Connect(function(char)
 				task.wait(0.2)
 				for _, v in pairs(char:GetDescendants()) do
@@ -2148,7 +2159,7 @@ end)
 				end
 			end)
 		end
-		antifling = game.Players.PlayerAdded:Connect(function(player)
+		antifling = players.PlayerAdded:Connect(function(player)
 				if player ~= p and player.Character then
 					for _, v in pairs(player.Character:GetDescendants()) do
 						if v:IsA("BasePart") then
@@ -2487,15 +2498,7 @@ end)
     	end
 	end)
 	addcmd("cmdcount", "Lists how much commands Kruel has. (Number)", function()
-		local cmdss = {}
-		local count = 0
-		for _, data in pairs(cmds) do
-			if not cmdss[data.Button] then
-				cmdss[data.Button] = true
-				count = count + 1
-			end
-		end
-		notif("Kruel", "Commands: " .. count, 3)
+		notif("Kruel", "Commands: " .. countt, 3)
 	end)
 	local dances = {
 		"/e dance",
@@ -2705,7 +2708,7 @@ end)
 		end
 	end)
 	addcmd("unspin", "Stop spinning.", function()
-		for _, v in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do
+		for _, v in pairs(players.LocalPlayer.Character:GetDescendants()) do
 			if v.Name == "Spin" then
 				v:Destroy()
 			end
@@ -3000,6 +3003,9 @@ for cmdName, cmdData in pairs(cmds) do
     end
 end
 
-
+local timetoload = os.clock() - start
 -- a little bit of flexing optimization flexing here
-notif("Kruel", "Kruel Admin loaded, please consider joining our server! (;discord) \nLoading time: " .. string.format("%.4f", (os.clock() - start)) .. "s", 5)
+notif("Kruel", "Kruel Admin loaded, please consider joining our server! (;discord) \nLoading time: " .. string.format("%.4f", timetoload) .. "s", 5)
+if timetoload < 0.01 then
+	notif("Kruel", "Loaded below .01s gg", 5)
+end
