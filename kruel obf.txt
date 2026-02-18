@@ -13,7 +13,7 @@
 	local players = game:GetService("Players")
 	local start = os.clock()
 	local crg = game:GetService("CoreGui") -- when on executor
-	local pg = players.LocalPlayer:WaitForChild("PlayerGui") -- when in studio
+	--local pg = players.LocalPlayer:WaitForChild("PlayerGui") -- when in studio
 	if crg:FindFirstChild("kruelty") then -- game:GetService("CoreGui"):FindFirstChild("kruelty")
 		crg:FindFirstChild("kruelty"):Destroy() -- game:GetService("CoreGui"):FindFirstChild("kruelty")
 		flinging = false
@@ -49,9 +49,9 @@
 	local tp = game:GetService("TeleportService")
 	local jobid = game.JobId
 	local placeid = game.PlaceId
-	local version = "v.1.5.5"
+	local version = "v.1.5.0"
 	local p = players.LocalPlayer
-	local pg = p:WaitForChild("PlayerGui")
+	--local pg = p:WaitForChild("PlayerGui")
 	local psg = Instance.new("ScreenGui")
 	psg.Name = "kruelty"
 	psg.Parent = crg
