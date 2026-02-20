@@ -49,7 +49,7 @@
 	local tp = game:GetService("TeleportService")
 	local jobid = game.JobId
 	local placeid = game.PlaceId
-	local version = "v.1.5.0"
+	local version = "v.1.5.5"
 	local p = players.LocalPlayer
 	--local pg = p:WaitForChild("PlayerGui")
 	local psg = Instance.new("ScreenGui")
@@ -3009,3 +3009,4 @@ notif("Kruel", "Kruel Admin loaded, please consider joining our server! (;discor
 if timetoload < 0.01 then
 	notif("Kruel", "Loaded below .01s gg", 5)
 end
+
