@@ -6,13 +6,14 @@
     If you share modified versions publicly, credit @Veaquach clearly in the description.
 
 	
-    Version: v1.5.5
+    Version: v1.6.0
     Server: https://discord.gg/pymGxT7KXR
     Author: Veaquach
 ]]
-	local players = game:GetService("Players")
+	local cloneref = cloneref or function(aa) return aa end
+	local players = cloneref(game:GetService("Players"))
 	local start = os.clock()
-	local crg = game:GetService("CoreGui") -- when on executor
+	local crg = cloneref(game:GetService("CoreGui")) -- when on executor
 	--local pg = players.LocalPlayer:WaitForChild("PlayerGui") -- when in studio
 	if crg:FindFirstChild("kruelty") then -- game:GetService("CoreGui"):FindFirstChild("kruelty")
 		crg:FindFirstChild("kruelty"):Destroy() -- game:GetService("CoreGui"):FindFirstChild("kruelty")
@@ -39,17 +40,16 @@
 		Command = Color3.fromRGB(95, 95, 95)
 	}
 	local listening = false
-	local TextService = game:GetService("TextService")
-	local ts = game:GetService("TweenService")
+	local ts = cloneref(game:GetService("TweenService"))
 	local tii = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	local ti = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	local execc = string.split(identifyexecutor(), " ")
 	local executor = execc[1]
 	local walkflinging = false
-	local tp = game:GetService("TeleportService")
+	local tp = cloneref(game:GetService("TeleportService"))
 	local jobid = game.JobId
 	local placeid = game.PlaceId
-	local version = "v.1.5.5"
+	local version = "v1.6.0"
 	local p = players.LocalPlayer
 	--local pg = p:WaitForChild("PlayerGui")
 	local psg = Instance.new("ScreenGui")
@@ -159,7 +159,7 @@ local predicted = part.CFrame + (avgVel * predictionMultiplier)
 	end
 local notifholderpsg = Instance.new("ScreenGui")
 notifholderpsg.Name = "notifholder"
-notifholderpsg.Parent = game:GetService("CoreGui")
+notifholderpsg.Parent = cloneref(game:GetService("CoreGui"))
 notifholderpsg.ResetOnSpawn = false
 notifholderpsg.DisplayOrder = 2147483647
 local notifholder = Instance.new("Frame")
@@ -196,9 +196,11 @@ local function notif(title, text, delay) -- no idea how i made it this good 🤣
     local tick = os.clock()
 	local container = Instance.new("Frame")
 	local noticount = notifholder:GetChildren()
-	if #noticount > 9 then
-		noticount[1]:Destroy()
-	end
+if #noticount > 9 then
+    local oldest = noticount[1]
+    ts:Create(oldest, tiiii, {BackgroundTransparency = 1}):Play()
+    task.delay(0.25, function() oldest:Destroy() end)
+end
     container.Name = "notif_container"
     container.Parent = notifholder
 	container.LayoutOrder = -notis
@@ -291,7 +293,7 @@ local function notif(title, text, delay) -- no idea how i made it this good 🤣
     notifline2.AnchorPoint = Vector2.new(0, 1)
     notifline2.ZIndex = 2
     aui(notifline2, 8)
-	local rs = game:GetService("RunService")
+	local rs = cloneref(game:GetService("RunService"))
     local taskfunction = task.spawn(function()
         while isnotifying do
             local elapsed = os.clock() - tick
@@ -304,7 +306,7 @@ local function notif(title, text, delay) -- no idea how i made it this good 🤣
         end
     end)
 	local tiiii = TweenInfo.new(.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-	local ts = game:GetService("TweenService")
+	local ts = cloneref(game:GetService("TweenService"))
 	local tii = TweenInfo.new(delay, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 	local ti = TweenInfo.new(.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	local tiii = TweenInfo.new(.25, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
@@ -312,7 +314,11 @@ local function notif(title, text, delay) -- no idea how i made it this good 🤣
 	clickconn = notifbox.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			isnotifying = false
-			ts:Create(notifbox, tiiii, {Position = UDim2.new(0, 400, 0, 0)}):Play()
+			local currenty = notifbox.Position.Y.Offset
+			ts:Create(notifbox, tiiii, {
+			Position = UDim2.new(1.5, 0, 0, currenty)
+			}):Play()
+			task.wait(.15)
 			container.Size = UDim2.new(0, 300, 0, container.AbsoluteSize.Y)
 			container.AutomaticSize = Enum.AutomaticSize.None
 			ts:Create(container, ti, {Size = UDim2.new(0, 300, 0, 0)}):Play()
@@ -337,7 +343,11 @@ local function notif(title, text, delay) -- no idea how i made it this good 🤣
     ftw:Play()
     ftw.Completed:Wait()
 	if not isnotifying then return end
-	ts:Create(notifbox, tiiii, {Position = UDim2.new(0, 400, 0, 0)}):Play()
+	local currenty = notifbox.Position.Y.Offset
+	ts:Create(notifbox, tiiii, {
+	Position = UDim2.new(1.5, 0, 0, currenty)
+	}):Play()
+	task.wait(.15)
 	container.Size = UDim2.new(0, 300, 0, container.AbsoluteSize.Y)
 	container.AutomaticSize = Enum.AutomaticSize.None
 	ts:Create(container, tiii, {Size = UDim2.new(0, 300, 0, 0)}):Play()
@@ -425,7 +435,7 @@ end)
 		ColorSequenceKeypoint.new(1, Color3.fromRGB(215, 215, 215))
 	}
 	grad.Parent = drg
-	local uis = game:GetService("UserInputService")
+	local uis = cloneref(game:GetService("UserInputService"))
 	-- lowk dog for not making mobile support idk if it works or not but idgaf about delta skids
 	if uis.TouchEnabled and not uis.KeyboardEnabled then
 		task.delay(5, function()
@@ -539,9 +549,9 @@ end)
 	list.Parent = sfr
 	list.SortOrder = Enum.SortOrder.LayoutOrder
 	list.Padding = UDim.new(0, 5)
-	local rs = game:GetService("RunService")
+	local rs = cloneref(game:GetService("RunService"))
 	local mousehovering = false
-	local uis = game:GetService("UserInputService")
+	local uis = cloneref(game:GetService("UserInputService"))
 	local mouseconn = nil
 	local mousep = uis:GetMouseLocation()
 	tooltip = Instance.new("Frame")
@@ -1266,9 +1276,9 @@ end)
 		l.GlobalShadows = false
 	end)
 	addcmd({"shop", "serverhop"}, "Goes to another server.", function()
-		local HttpService = game:GetService("HttpService")
+		local HttpService = cloneref(game:GetService("HttpService"))
 		local Players = players
-		local TeleportService = game:GetService("TeleportService")
+		local TeleportService = cloneref(game:GetService("TeleportService"))
 
 		if not p then
 			warn("[Shop] LocalPlayer not found. Make sure this runs on the client.")
@@ -1692,8 +1702,8 @@ end)
 
 		return track
 	end
-	local rs = game:GetService("RunService")
-	local UIS = game:GetService("UserInputService")
+	local rs = cloneref(game:GetService("RunService"))
+	local UIS = cloneref(game:GetService("UserInputService"))
 
 	local MOVE_ID = 88355433528455
 	local IDLE_ID = 110655383512189
@@ -1799,7 +1809,7 @@ end)
 
 		task.spawn(function()
 			while FLY do
-				game:GetService("RunService").Heartbeat:Wait()
+				cloneref(game:GetService("RunService")).Heartbeat:Wait()
 				local moveDir = Vector3.zero
 				local cam = workspace.CurrentCamera
 				if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
@@ -1979,7 +1989,7 @@ end)
 
 		local Camera = workspace.CurrentCamera
 		if getgenv().hi == nil then
-			game:GetService("RunService").RenderStepped:Connect(function()
+			cloneref(game:GetService("RunService")).RenderStepped:Connect(function()
 				Camera.CFrame = Camera.CFrame * CFrame.new(0, 0, 0, 1, 0, 0, 0, getgenv().Resolution["hi"], 0, 0, 0, 1)
 			end)
 		end
@@ -2002,7 +2012,7 @@ end)
 	end)
 	addcmd("proud", "Announces Kruel usage.", function()
 		pcall(function()
-			game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync(p.Name .. " is using Kruel Admin!")
+			cloneref(game:GetService("TextChatService")).TextChannels.RBXGeneral:SendAsync(p.Name .. " is using Kruel Admin!")
 		end)
 	end)
 	addcmd("qvape", "Loads QVape V4", function()
@@ -2062,7 +2072,7 @@ end)
 	end)
 	local tpwalking = false
 	addcmd("tpwalk", 'basically better speed', function(args)
-		local Heartbeat = game:GetService("RunService").Heartbeat
+		local Heartbeat = cloneref(game:GetService("RunService")).Heartbeat
 		local speed = tonumber(args[1])
 		local chr = p.Character
 		local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
@@ -2180,14 +2190,12 @@ addcmd("void", "New fling (BETA)", function(args)
             notif("Kruel", "Player is sitting, cannot voidfling.", 3)
             return
         end
-        local wasfalldamaging = false
-        if antifalldamaging then
-            wasfalldamaging = true
-            noantifalldamage()
-        end
+		exec("unwalkfling")
+		exec("antisit")
+		exec("antitrip")
         local hrp = p.Character.HumanoidRootPart
         local part = trgt.Character.HumanoidRootPart
-        exec("antisit")
+        p.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
         local tc = tick()
         newflinging = true
         local orgpos = hrp.CFrame
@@ -2196,73 +2204,56 @@ addcmd("void", "New fling (BETA)", function(args)
         workspace.FallenPartsDestroyHeight = 0/0
         local orgsub = workspace.CurrentCamera.CameraSubject
         workspace.CurrentCamera.CameraSubject = part.Parent.Humanoid
-        exec("walkfling")
-        exec("antitrip")
-        local orgmasses = {}
-        for _, v in pairs(char:GetDescendants()) do
-            if v:IsA("BasePart") then
-                orgmasses[v] = v.AssemblyMass
-                v.Massless = true
-            end
-        end
         
         local velhist = {}
         local histsize = 3
+        local hum = p.Character.Humanoid
+        local orghipheight = hum.HipHeight
         
-        repeat
-            rs.Heartbeat:Wait()
-            if not newflinging or not part or not part.Parent then break end
-            table.insert(velhist, part.AssemblyLinearVelocity)
-            if #velhist > histsize then
-                table.remove(velhist, 1)
-            end
-            
-            local avgvl = Vector3.zero
-            for _, v in pairs(velhist) do
-                avgvl += v
-            end
-            avgvl /= #velhist
-            
-            local speed = avgvl.Magnitude
-            local predmulti = math.clamp(speed / 16, 0.15, 0.45)
-            
-            local predicted = part.CFrame + (avgvl * predmulti)
-            char:PivotTo(predicted)
-            
-            hrp.Velocity = Vector3.new(0, -1e200, 0)
-            hrp.RotVelocity = Vector3.new(1e200, 1e200, 1e200)
-            local targetHalfHeight = part.Size.Y / 2
-            local myHalfHeight = hrp.Size.Y / 2
-            local yOffset = targetHalfHeight - myHalfHeight + 1.15
-            
-            for i = 1, 5 do
-                hrp.CFrame = predicted * CFrame.new(
-                    math.random(-0.2, 0.2), 
-                    yOffset, 
-                    math.random(-0.2, 0.2)
-                )
-            end
-            
-        until (part.AssemblyLinearVelocity.Magnitude > 150) or (tick() - tc > 4) or not newflinging or not part
+ repeat
+    rs.Heartbeat:Wait()
+    if not newflinging or not part or not part.Parent then break end
+    
+    table.insert(velhist, part.AssemblyLinearVelocity)
+    if #velhist > histsize then table.remove(velhist, 1) end
+    
+    local avgvl = Vector3.zero
+    for _, v in pairs(velhist) do avgvl += v end
+    avgvl /= #velhist
+    
+    local speed = avgvl.Magnitude
+    local predmulti = math.clamp(speed / 16, 0.15, 0.45)
+    local predicted = part.CFrame + (avgvl * predmulti)
+    
+    local targetHalfHeight = part.Size.Y / 2
+    local myHalfHeight = hrp.Size.Y / 2
+    local yOffset = targetHalfHeight - myHalfHeight + 1.15
+    
+    hrp.CFrame = predicted * CFrame.new(
+        math.random() * 0.4 - 0.2,
+        yOffset,
+        math.random() * 0.4 - 0.2
+    )
+    hrp.AssemblyLinearVelocity = Vector3.new(0, math.random(-10000000000, 1000000000), 0)
+    hrp.AssemblyAngularVelocity = Vector3.new(math.random(-10000000000, -1000000000), math.random(-10000000000, -1000000000), math.random(-10000000000, -1000000000))
+    hum.HipHeight = 2
+    rs.Stepped:Wait()
+    
+    if hrp and hrp.Parent then
+        hrp.AssemblyLinearVelocity = Vector3.zero
+        hrp.AssemblyAngularVelocity = Vector3.zero
+    end
+
+until (part.AssemblyLinearVelocity.Magnitude > 150) or (tick() - tc > 4) or not newflinging or not part or not part.Parent
         
         newflinging = false
-        for part, mass in pairs(orgmasses) do
-            if part and part.Parent then
-                part.Massless = false
-            end
-        end
-        if wasfalldamaging then
-            exec("antifalldamage")
-			task.wait(.5)
-        end
         hrp.Anchored = true
         task.wait()
-        exec("unwalkfling")
-        exec("fly")
         task.wait()
-        exec("unfly")
-        exec("unantitrip")
-        exec("unantisit")
+		exec("unantitrip")
+		exec("unantisit")
+        hum.HipHeight = orghipheight
+        p.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
         hrp.Velocity = Vector3.zero
         hrp.RotVelocity = Vector3.zero
         hrp.AssemblyLinearVelocity = Vector3.zero
@@ -2279,7 +2270,7 @@ addcmd("void", "New fling (BETA)", function(args)
         hum.PlatformStand = false
         hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
         local hasdied = false
-        local diedconn = trgt.CharacterRemoving:Connect(function()
+        local diedconn = trgt.Character.Humanoid.Died:Connect(function()
             hasdied = true
         end)
         local remconn = trgt.CharacterRemoving:Connect(function() hasdied = true end)
@@ -2289,8 +2280,6 @@ addcmd("void", "New fling (BETA)", function(args)
         if not hasdied and part and part.Parent then
             if part.AssemblyLinearVelocity.Magnitude < 50 and part.Position.Y > workspace.FallenPartsDestroyHeight then
                 notif("Kruel", trgt.Name .. " hasn't died.", 2)
-            else
-                notif("Kruel", trgt.Name .. " was voided.", 2)
             end
         else
             notif("Kruel", trgt.Name .. " is confirmed dead.", 2)
@@ -2521,7 +2510,7 @@ end)
 		local dancess = getrandomvalue(dances)
 		print("Tried to use " .. dancess)
 		pcall(function()
-			game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync(dancess)
+			cloneref(game:GetService("TextChatService")).TextChannels.RBXGeneral:SendAsync(dancess)
 		end)
 	end)
 	addcmd("rspy", "Remote Spy", function()
@@ -2573,6 +2562,7 @@ end)
 		local hrp = p.Character.HumanoidRootPart
 		local thrp = trgt.Character.HumanoidRootPart
 		if not hrp or not thrp then return end
+		exec("view " .. trgt.Name)
 		semiannoyconn = rs.Heartbeat:Connect(function()
 			local predicted = thrp.CFrame
 			predicted += Vector3.new(0, thrp.AssemblyLinearVelocity.Y, 0) * .2152321
@@ -2586,6 +2576,7 @@ addcmd("unsemiannoy", "Stops lightly annoying a player.", function()
 		semiannoyconn:Disconnect()
 		semiannoyconn = nil
 	end
+	exec("unview")
 end)
 	local sitconn = nil
 	local orbitangle = 0.05
@@ -2955,7 +2946,7 @@ drgfr.InputEnded:Connect(function(input)
 		draggingg = false
 	end
 end)
-local UIS = game:GetService("UserInputService")
+local UIS = cloneref(game:GetService("UserInputService"))
 UIS.InputChanged:Connect(function(input)
 	if draggingg and input.UserInputType == Enum.UserInputType.MouseMovement then
 		local delta = input.Position - dragStartt
@@ -3002,11 +2993,9 @@ for cmdName, cmdData in pairs(cmds) do
         addcmds(allNames, cmdData.Description, cmdData.Function)
     end
 end
-
 local timetoload = os.clock() - start
 -- a little bit of flexing optimization flexing here
-notif("Kruel", "Kruel Admin loaded, please consider joining our server! (;discord) \nLoading time: " .. string.format("%.4f", timetoload) .. "s", 5)
+notif("Kruel", "Kruel Admin loaded, please consider joining our server! (;discord)\nLoading time: " .. string.format("%.4f", timetoload) .. "s", 5)
 if timetoload < 0.01 then
 	notif("Kruel", "Loaded below .01s gg", 5)
 end
-
