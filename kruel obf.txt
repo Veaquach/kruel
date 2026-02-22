@@ -20,47 +20,21 @@ local WORKER_URL = "https://kruel.veaquach.workers.dev"
 local SESSION_ID = tostring(lp.UserId) .. "_" .. tostring(game.JobId)
 
 local function heartbeat()
+    local ccu = 0
     pcall(function()
-        request({
+        local res = request({
             Url = WORKER_URL .. "/ping",
             Method = "POST",
             Headers = {["Content-Type"] = "application/json"},
-            Body = httpserv:JSONEncode({
-                id = SESSION_ID,
-                last_seen = os.date("!%Y-%m-%dT%H:%M:%SZ")
-            })
-        })
-    end)
-end
-task.spawn(function()
-	pcall(function()
-    request({Url = WORKER_URL .. "/leave", Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = httpserv:JSONEncode({id = SESSION_ID})})
-end)
-task.wait(0.2)
-heartbeat()	
-end)
-
-local function getconcurrent()
-    local result = 0
-    pcall(function()
-        local res = request({
-            Url = WORKER_URL .. "/count",
-            Method = "GET",
-            Headers = {["Content-Type"] = "application/json"}
+            Body = httpserv:JSONEncode({ id = SESSION_ID })
         })
         if res and res.StatusCode == 200 then
             local data = httpserv:JSONDecode(res.Body)
-            result = data.count or 0
+            ccu = data.count or 0
         end
     end)
-    return result
+    return ccu
 end
-
-task.spawn(function()
-    while task.wait(60) do
-        heartbeat()
-    end
-end)
 	local crg = cloneref(game:GetService("CoreGui")) -- when on executor
 	--local pg = players.LocalPlayer:WaitForChild("PlayerGui") -- when in studio
 	if crg:FindFirstChild("kruelty") then -- game:GetService("CoreGui"):FindFirstChild("kruelty")
@@ -1692,9 +1666,12 @@ addcmd("stopvelocity", "Stops velocity.", function()
 	task.wait()
 	end
 end)
+local lastcall = 0
 addcmd("ccu", "Gets concurrent Kruel users.", function()
+	if lastcall + 5 > tick() then return end
+	lastcall = tick()
 	heartbeat()
-	notif("Kruel", "Concurrent users: " .. getconcurrent(), 2)
+	notif("Kruel", "Concurrent users: " .. heartbeat(), 2)
 end)
 addcmd("antifalldamage", "Stops fall damage", function()
     if antifalldamaging then 
@@ -3161,9 +3138,13 @@ for cmdName, cmdData in pairs(cmds) do
 end
 local timetoload = os.clock() - start
 -- a little bit of flexing optimization flexing here
-heartbeat()
-local ccu = getconcurrent()
+local ccu = heartbeat()
 notif("Kruel", "Kruel Admin loaded, please consider joining our server! (;discord)\nLoading time: " .. string.format("%.4f", timetoload) .. "s\nConcurrent Kruel users: " .. (ccu == 1 and "1 (you)" or ccu), 5)
 if timetoload < 0.01 then
 	notif("Kruel", "Loaded below .01s gg", 5)
 end
+task.spawn(function()
+    while task.wait(120) do
+        heartbeat()
+    end
+end)
