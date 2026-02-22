@@ -10,9 +10,57 @@
     Server: https://discord.gg/pymGxT7KXR
     Author: Veaquach
 ]]
-	local cloneref = cloneref or function(aa) return aa end
-	local players = cloneref(game:GetService("Players"))
-	local start = os.clock()
+local cloneref = cloneref or function(aa) return aa end
+local players = cloneref(game:GetService("Players"))
+local start = os.clock()
+local httpserv = cloneref(game:GetService("HttpService"))
+local lp = players.LocalPlayer
+
+local WORKER_URL = "https://kruel.veaquach.workers.dev"
+local SESSION_ID = tostring(lp.UserId) .. "_" .. tostring(game.JobId)
+
+local function heartbeat()
+    pcall(function()
+        request({
+            Url = WORKER_URL .. "/ping",
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = httpserv:JSONEncode({
+                id = SESSION_ID,
+                last_seen = os.date("!%Y-%m-%dT%H:%M:%SZ")
+            })
+        })
+    end)
+end
+task.spawn(function()
+	pcall(function()
+    request({Url = WORKER_URL .. "/leave", Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = httpserv:JSONEncode({id = SESSION_ID})})
+end)
+task.wait(0.2)
+heartbeat()	
+end)
+
+local function getconcurrent()
+    local result = 0
+    pcall(function()
+        local res = request({
+            Url = WORKER_URL .. "/count",
+            Method = "GET",
+            Headers = {["Content-Type"] = "application/json"}
+        })
+        if res and res.StatusCode == 200 then
+            local data = httpserv:JSONDecode(res.Body)
+            result = data.count or 0
+        end
+    end)
+    return result
+end
+
+task.spawn(function()
+    while task.wait(60) do
+        heartbeat()
+    end
+end)
 	local crg = cloneref(game:GetService("CoreGui")) -- when on executor
 	--local pg = players.LocalPlayer:WaitForChild("PlayerGui") -- when in studio
 	if crg:FindFirstChild("kruelty") then -- game:GetService("CoreGui"):FindFirstChild("kruelty")
@@ -196,6 +244,7 @@ local function notif(title, text, delay) -- no idea how i made it this good 🤣
     local tick = os.clock()
 	local container = Instance.new("Frame")
 	local noticount = notifholder:GetChildren()
+	local tiiii = TweenInfo.new(.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 if #noticount > 9 then
     local oldest = noticount[1]
     ts:Create(oldest, tiiii, {BackgroundTransparency = 1}):Play()
@@ -305,7 +354,6 @@ end
 			task.wait()
         end
     end)
-	local tiiii = TweenInfo.new(.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 	local ts = cloneref(game:GetService("TweenService"))
 	local tii = TweenInfo.new(delay, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 	local ti = TweenInfo.new(.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
@@ -788,6 +836,39 @@ addcmd({"fling", "kill"}, "Flings anyone you want.", function(args)
 		end
 	end
 end)
+local flingauraconn = nil
+local isflingingaplayer = false
+local lastflingtime = 0
+local flingaurarange = 15
+addcmd("flingaura", "Fling anyone around you.", function()
+    if flingauraconn then flingauraconn:Disconnect() end
+
+    flingauraconn = rs.Heartbeat:Connect(function()
+        if isflingingaplayer then return end
+        local now = tick()
+        if now - lastflingtime < .5 then return end
+
+        for i, v in pairs(players:GetPlayers()) do
+            if v ~= p and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = v.Character.HumanoidRootPart
+                local dist = (hrp.Position - p.Character.HumanoidRootPart.Position).Magnitude
+                if dist < flingaurarange then
+                    isflingingaplayer = true
+                    lastflingtime = tick()
+                    exec("fling " .. v.Name)
+                    isflingingaplayer = false
+                    return
+                end
+            end
+        end
+    end)
+end)
+addcmd("flingaurarange", "Changes the range of flingaura.", function(args)
+	flingaurarange = tonumber(args[1]) or 15
+end)
+addcmd("unflingaura", "Stops flingaura.", function()
+	if flingauraconn then flingauraconn:Disconnect() end
+end)
 local whitelists = {}
 
 addcmd({"whitelist", "wl", "admin"}, "Lets anyone use your commands.", function(args)
@@ -1026,9 +1107,10 @@ addcmd("unantivoid", "Stops antivoid.", function()
 end)
 addcmd("fakeout", "Fake going into the void.", function()
 	if p.Character and p.Character.HumanoidRootPart then
-		exec("antivoid")
 		local pos = p.Character.HumanoidRootPart.CFrame
-		p.Character.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(0, workspace.FallenPartsDestroyHeight - 25, 0))
+		local orgfallenparts = workspace.FallenPartsDestroyHeight
+		exec("antivoid")
+		p.Character.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(0, orgfallenparts - 25, 0))
 		task.wait(.4)
 		p.Character.HumanoidRootPart.CFrame = pos
 		exec("unantivoid")
@@ -1610,6 +1692,10 @@ addcmd("stopvelocity", "Stops velocity.", function()
 	task.wait()
 	end
 end)
+addcmd("ccu", "Gets concurrent Kruel users.", function()
+	heartbeat()
+	notif("Kruel", "Concurrent users: " .. getconcurrent(), 2)
+end)
 addcmd("antifalldamage", "Stops fall damage", function()
     if antifalldamaging then 
         antifalldamaging = false
@@ -2136,52 +2222,65 @@ end)
 			notif("Kruel", "Stopped listening.", 3)
 		end
 	end)
-	local antiflingcharadded = {}
-	local antiflinging = false
-	local cachedcollides = {}
-	addcmd("antifling", "Prevents you from getting flung by other people.", function()
-		if antifling then
-			antifling:Disconnect()
-			antifling = nil
-		end
-		for i, player in pairs(players:GetPlayers()) do
-			if player ~= p and player.Character then
-				for _, v in pairs(player.Character:GetDescendants()) do
-					if v:IsA("BasePart") then
-						if not cachedcollides[v] then
-							cachedcollides[v] = v.CanCollide
-						end
-						v.CanCollide = false
-					end
-				end
-			end
-		end
-		for i, v in pairs(players:GetPlayers()) do
-			antiflingcharadded[v] = v.CharacterAdded:Connect(function(char)
-				task.wait(0.2)
-				for _, v in pairs(char:GetDescendants()) do
-					if v:IsA("BasePart") then
-						if not cachedcollides[v] then
-							cachedcollides[v] = v.CanCollide
-						end
-						v.CanCollide = false
-					end
-				end
-			end)
-		end
-		antifling = players.PlayerAdded:Connect(function(player)
-				if player ~= p and player.Character then
-					for _, v in pairs(player.Character:GetDescendants()) do
-						if v:IsA("BasePart") then
-							if not cachedcollides[v] then
-								cachedcollides[v] = v.CanCollide
-							end
-						v.CanCollide = false
-					end
-				end
-			end
-		end)
-	end)
+local antifling = nil
+local antiflingcharadded = {}
+local antiflingloop = nil
+
+addcmd("antifling", "Prevents you from getting flung.", function()
+    if antifling then antifling:Disconnect() antifling = nil end
+    if antiflingloop then antiflingloop:Disconnect() antiflingloop = nil end
+    for _, conn in pairs(antiflingcharadded) do conn:Disconnect() end
+    antiflingcharadded = {}
+
+    local function disablechar(char)
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = false
+            end
+        end
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("WeldConstraint") or v:IsA("HingeConstraint") or v:IsA("RodConstraint") then
+                v.Enabled = false
+            end
+        end
+    end
+
+    antiflingloop = rs.Heartbeat:Connect(function()
+        if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = p.Character.HumanoidRootPart
+            local vel = hrp.AssemblyLinearVelocity
+            if vel.Magnitude > 50 then
+                hrp.AssemblyLinearVelocity = vel.Unit * 50
+            end
+        end
+
+        for _, player in pairs(players:GetPlayers()) do
+            if player ~= p and player.Character then
+                for _, v in pairs(player.Character:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.CanCollide = false
+                    end
+                end
+            end
+        end
+    end)
+
+    for _, player in pairs(players:GetPlayers()) do
+        if player ~= p and player.Character then
+            disablechar(player.Character)
+        end
+        antiflingcharadded[player] = player.CharacterAdded:Connect(function(char)
+            task.wait(0.2)
+            disablechar(char)
+        end)
+    end
+    antifling = players.PlayerAdded:Connect(function(player)
+        antiflingcharadded[player] = player.CharacterAdded:Connect(function(char)
+            task.wait(0.2)
+            disablechar(char)
+        end)
+    end)
+end)
 newflinging = false
 addcmd("void", "New fling (BETA)", function(args)
     local trgt = findplr(args[1])[1]
@@ -2209,6 +2308,14 @@ addcmd("void", "New fling (BETA)", function(args)
         local histsize = 3
         local hum = p.Character.Humanoid
         local orghipheight = hum.HipHeight
+
+		local hasdied = false
+        local diedconn = trgt.Character.Humanoid.Died:Connect(function()
+            hasdied = true
+        end)
+        local remconn = trgt.CharacterRemoving:Connect(function()
+            hasdied = true
+        end)
         
  repeat
     rs.Heartbeat:Wait()
@@ -2222,7 +2329,7 @@ addcmd("void", "New fling (BETA)", function(args)
     avgvl /= #velhist
     
     local speed = avgvl.Magnitude
-    local predmulti = math.clamp(speed / 16, 0.15, 0.45)
+    local predmulti = math.clamp(speed / trgt.Character.Humanoid.WalkSpeed, 0.15, 0.45)
     local predicted = part.CFrame + (avgvl * predmulti)
     
     local targetHalfHeight = part.Size.Y / 2
@@ -2269,22 +2376,72 @@ until (part.AssemblyLinearVelocity.Magnitude > 150) or (tick() - tc > 4) or not 
         hum:ChangeState(Enum.HumanoidStateType.GettingUp)
         hum.PlatformStand = false
         hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
-        local hasdied = false
-        local diedconn = trgt.Character.Humanoid.Died:Connect(function()
-            hasdied = true
-        end)
-        local remconn = trgt.CharacterRemoving:Connect(function() hasdied = true end)
-        task.wait(3)
-        diedconn:Disconnect()
-        remconn:Disconnect()
-        if not hasdied and part and part.Parent then
-            if part.AssemblyLinearVelocity.Magnitude < 50 and part.Position.Y > workspace.FallenPartsDestroyHeight then
-                notif("Kruel", trgt.Name .. " hasn't died.", 2)
-            end
-        else
-            notif("Kruel", trgt.Name .. " is confirmed dead.", 2)
+		task.wait(5)
+		diedconn:Disconnect()
+		remconn:Disconnect()
+
+		if hasdied then
+    		notif("Kruel", trgt.Name .. " is confirmed dead.", 2)
+		else
+    	if not trgt.Character or not trgt.Character:FindFirstChild("HumanoidRootPart") then
+        	notif("Kruel", trgt.Name .. " is confirmed dead.", 2)
+    	elseif trgt.Character.Humanoid.Health <= 0 then
+        	notif("Kruel", trgt.Name .. " is confirmed dead.", 2)	
+    	else
+        	notif("Kruel", trgt.Name .. " hasn't died.", 2)
+    		end
+		end
+	end
+end)
+addcmd("voidtool", "Gives you a void tool.", function()
+	local tool = Instance.new("Tool")
+	tool.RequiresHandle = false
+	tool.Name = "Void Tool"
+	tool.Parent = players.LocalPlayer.Backpack
+	local mouse = players.LocalPlayer:GetMouse()
+	tool.Activated:Connect(function()
+		local hit = mouse.Target
+		local hum = hit:FindFirstAncestorWhichIsA("Model")
+        if hum then
+            hum = hum:FindFirstChildWhichIsA("Humanoid")
         end
-    end
+            if hum and hum.Parent:FindFirstChild("HumanoidRootPart") then
+            exec("void " .. hum.Parent.Name)
+         end
+	end)
+end)
+local voidauraconn = nil
+local isvoidingaplayer = false
+local lastvoidtime = 0
+local voidaurarange = 15
+addcmd("voidaura", "Voids anyone near you.", function()
+    if voidauraconn then voidauraconn:Disconnect() end
+
+    voidauraconn = rs.Heartbeat:Connect(function()
+        if isvoidingaplayer then return end
+        local now = tick()
+        if now - lastvoidtime < .5 then return end
+
+        for i, v in pairs(players:GetPlayers()) do
+            if v ~= p and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = v.Character.HumanoidRootPart
+                local dist = (hrp.Position - p.Character.HumanoidRootPart.Position).Magnitude
+                if dist < voidaurarange then
+                    isvoidingaplayer = true
+                    lastvoidtime = tick()
+                    exec("void " .. v.Name)
+                    isvoidingaplayer = false
+                    return
+                end
+            end
+        end
+    end)
+end)
+addcmd("voidaurarange", "Changes the range of the void aura.", function(args)
+	voidaurarange = tonumber(args[1]) or 15
+end)
+addcmd("unvoidaura", "Stops the void aura.", function()
+	if voidauraconn then voidauraconn:Disconnect() end
 end)
 addcmd("flingui", "Opens the fling ui.", function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Veaquach/kruel/refs/heads/main/flingui"))() end)
 rocketing = false
@@ -2328,7 +2485,7 @@ addcmd("rocket", "Rocket someone up.", function(args)
             avgvl /= #velhist
             
             local speed = avgvl.Magnitude
-            local predmulti = math.clamp(speed / 16, 0.15, 0.45)
+            local predmulti = math.clamp(speed / trgt.Character.Humanoid.WalkSpeed, 0.15, 0.45)
             
             local predicted = part.CFrame
             predicted += avgvl * predmulti
@@ -2416,7 +2573,7 @@ addcmd("superrocket", "Rocket someone up very high.", function(args)
             avgvl /= #velhist
             
             local speed = avgvl.Magnitude
-            local predmulti = math.clamp(speed / 16, 0.15, 0.45)
+            local predmulti = math.clamp(speed / trgt.Character.Humanoid.WalkSpeed, 0.15, 0.45)
             
             local predicted = part.CFrame
             predicted += avgvl * predmulti
@@ -2508,7 +2665,7 @@ end)
 	end)
 	addcmd("dance", "Dances (only default animations, needs chat enabled)", function()
 		local dancess = getrandomvalue(dances)
-		print("Tried to use " .. dancess)
+		notif("Tried to use " .. dancess)
 		pcall(function()
 			cloneref(game:GetService("TextChatService")).TextChannels.RBXGeneral:SendAsync(dancess)
 		end)
@@ -2535,10 +2692,19 @@ end)
 			local hrp = p.Character.HumanoidRootPart
 			local thrp = trgt.Character.HumanoidRootPart
 			if not hrp or not thrp then return end
+			local velhist = {}
+        	local histsize = 3
 			annoyconn = rs.Heartbeat:Connect(function()
-			local predicted = thrp.CFrame
-			predicted += Vector3.new(0, thrp.AssemblyLinearVelocity.Y, 0) * .2152321
-			predicted += (Vector3.new(thrp.AssemblyLinearVelocity.X, 0, thrp.AssemblyLinearVelocity.Z) / 2.152321)
+    		table.insert(velhist, thrp.AssemblyLinearVelocity)
+    		if #velhist > histsize then table.remove(velhist, 1) end
+    
+    		local avgvl = Vector3.zero
+    		for _, v in pairs(velhist) do avgvl += v end
+    		avgvl /= #velhist
+    
+    		local speed = avgvl.Magnitude
+   			local predmulti = math.clamp(speed / trgt.Character.Humanoid.WalkSpeed, 0.15, 0.45)
+    		local predicted = thrp.CFrame + (avgvl * predmulti)
 			hrp.CFrame = predicted * CFrame.Angles(math.random() > .3 and 90 or -135, 90, -180)
 			hrp.AssemblyAngularVelocity = Vector3.new(math.random(0, 75), math.random(0, 75), math.random(0, 75))
 			if thrp.AssemblyLinearVelocity.Magnitude > 100 then
@@ -2995,7 +3161,9 @@ for cmdName, cmdData in pairs(cmds) do
 end
 local timetoload = os.clock() - start
 -- a little bit of flexing optimization flexing here
-notif("Kruel", "Kruel Admin loaded, please consider joining our server! (;discord)\nLoading time: " .. string.format("%.4f", timetoload) .. "s", 5)
+heartbeat()
+local ccu = getconcurrent()
+notif("Kruel", "Kruel Admin loaded, please consider joining our server! (;discord)\nLoading time: " .. string.format("%.4f", timetoload) .. "s\nConcurrent Kruel users: " .. (ccu == 1 and "1 (you)" or ccu), 5)
 if timetoload < 0.01 then
 	notif("Kruel", "Loaded below .01s gg", 5)
 end
