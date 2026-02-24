@@ -2259,12 +2259,16 @@ addcmd("antifling", "Prevents you from getting flung.", function()
     end)
 end)
 newflinging = false
-addcmd("void", "Attempts to fling people into the void.", function(args)
+addcmd("void", "New fling (BETA)", function(args)
     local trgt = findplr(args[1])[1]
     if trgt and trgt.Character and trgt.Character.HumanoidRootPart and trgt.Character.Humanoid and p.Character and p.Character.HumanoidRootPart then
-		exec("unwalkfling")
-		exec("antisit")
-		exec("antitrip")
+        if trgt.Character.Humanoid.SeatPart ~= nil then
+            notif("Kruel", "Player is sitting, cannot voidfling.", 3)
+            return
+        end
+        exec("unwalkfling")
+        exec("antisit")
+        exec("antitrip")
         local hrp = p.Character.HumanoidRootPart
         local part = trgt.Character.HumanoidRootPart
         p.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
@@ -2276,62 +2280,75 @@ addcmd("void", "Attempts to fling people into the void.", function(args)
         workspace.FallenPartsDestroyHeight = 0/0
         local orgsub = workspace.CurrentCamera.CameraSubject
         workspace.CurrentCamera.CameraSubject = part.Parent.Humanoid
-        
+
         local velhist = {}
         local histsize = 3
         local hum = p.Character.Humanoid
         local orghipheight = hum.HipHeight
+        local expecteddt = 1 / math.max(getfpscap(), 30)
+        local lastvel = part.AssemblyLinearVelocity
 
-		local hasdied = false
+        local hasdied = false
         local diedconn = trgt.Character.Humanoid.Died:Connect(function()
             hasdied = true
         end)
         local remconn = trgt.CharacterRemoving:Connect(function()
             hasdied = true
         end)
-        
- repeat
-    rs.Heartbeat:Wait()
-    if not newflinging or not part or not part.Parent then break end
-    
-    table.insert(velhist, part.AssemblyLinearVelocity)
-    if #velhist > histsize then table.remove(velhist, 1) end
-    
-    local avgvl = Vector3.zero
-    for _, v in pairs(velhist) do avgvl += v end
-    avgvl /= #velhist
-    
-    local speed = avgvl.Magnitude
-    local predmulti = math.clamp(speed / trgt.Character.Humanoid.WalkSpeed, 0.15, 0.45)
-    local predicted = part.CFrame + (avgvl * predmulti)
-    
-    local targetHalfHeight = part.Size.Y / 2
-    local myHalfHeight = hrp.Size.Y / 2
-    local yOffset = targetHalfHeight - myHalfHeight + 1.15
-    
-    hrp.CFrame = predicted * CFrame.new(
-        math.random() * 0.4 - 0.2,
-        yOffset,
-        math.random() * 0.4 - 0.2
-    )
-    hrp.AssemblyLinearVelocity = Vector3.new(0, math.random(-10000000000, -1000000000), 0)
-    hrp.AssemblyAngularVelocity = Vector3.new(math.random(-10000000000, -1000000000), math.random(-10000000000, -1000000000), math.random(-10000000000, -1000000000))
-    hum.HipHeight = 2
-    rs.Stepped:Wait()
-    
-    if hrp and hrp.Parent then
-        hrp.AssemblyLinearVelocity = Vector3.zero
-        hrp.AssemblyAngularVelocity = Vector3.zero
-    end
 
-until (part.AssemblyLinearVelocity.Magnitude > 150) or (tick() - tc > 4) or not newflinging or not part or not part.Parent
-        
+        repeat
+            local dtstart = tick()
+            rs.Heartbeat:Wait()
+            local dt = tick() - dtstart
+            dt = math.clamp(dt, expecteddt * 0.5, expecteddt * 4)
+            if not newflinging or not part or not part.Parent then break end
+
+            local curvel = part.AssemblyLinearVelocity
+
+            table.insert(velhist, Vector3.new(curvel.X, 0, curvel.Z))
+            if #velhist > histsize then table.remove(velhist, 1) end
+
+            local avgvl = Vector3.zero
+            for _, v in pairs(velhist) do avgvl += v end
+            avgvl /= #velhist
+
+            local speed = avgvl.Magnitude
+            local predmulti = math.clamp(speed / trgt.Character.Humanoid.WalkSpeed, 0.15, 0.45)
+
+            local lagoffset = math.max(dt - expecteddt, 0) * 2
+            local pingcomp = lagoffset + dt
+            local lookahead = predmulti + pingcomp
+
+            local targethalfh = part.Size.Y / 2
+            local myhalfh = hrp.Size.Y / 2
+            local yoffset = targethalfh - myhalfh + 1.15
+
+            local flatpos = (part.CFrame + (avgvl * lookahead)).Position
+            local predicted = CFrame.new(flatpos.X, part.Position.Y + yoffset, flatpos.Z)
+
+            hrp.CFrame = predicted * CFrame.new(
+                math.random() * 0.4 - 0.2,
+                0,
+                math.random() * 0.4 - 0.2
+            )
+            hrp.AssemblyLinearVelocity = Vector3.new(0, math.random(-10000000000, -1000000000), 0)
+            hrp.AssemblyAngularVelocity = Vector3.new(math.random(-10000000000, -1000000000), math.random(-10000000000, -1000000000), math.random(-10000000000, -1000000000))
+            hum.HipHeight = 2
+            rs.Stepped:Wait()
+
+            if hrp and hrp.Parent then
+                hrp.AssemblyLinearVelocity = Vector3.zero
+                hrp.AssemblyAngularVelocity = Vector3.zero
+            end
+
+        until (part.AssemblyLinearVelocity.Magnitude > 150) or (tick() - tc > 4) or not newflinging or not part or not part.Parent
+
         newflinging = false
         hrp.Anchored = true
         task.wait()
         task.wait()
-		exec("unantitrip")
-		exec("unantisit")
+        exec("unantitrip")
+        exec("unantisit")
         hum.HipHeight = orghipheight
         p.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
         hrp.Velocity = Vector3.zero
@@ -2349,22 +2366,22 @@ until (part.AssemblyLinearVelocity.Magnitude > 150) or (tick() - tc > 4) or not 
         hum:ChangeState(Enum.HumanoidStateType.GettingUp)
         hum.PlatformStand = false
         hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
-		task.wait(5)
-		diedconn:Disconnect()
-		remconn:Disconnect()
+        task.wait(5)
+        diedconn:Disconnect()
+        remconn:Disconnect()
 
-		if hasdied then
-    		notif("Kruel", trgt.Name .. " is confirmed dead.", 2)
-		else
-    	if not trgt.Character or not trgt.Character:FindFirstChild("HumanoidRootPart") then
-        	notif("Kruel", trgt.Name .. " is confirmed dead.", 2)
-    	elseif trgt.Character.Humanoid.Health <= 0 then
-        	notif("Kruel", trgt.Name .. " is confirmed dead.", 2)	
-    	else
-        	notif("Kruel", trgt.Name .. " hasn't died.", 2)
-    		end
-		end
-	end
+        if hasdied then
+            notif("Kruel", trgt.Name .. " is confirmed dead.", 2)
+        else
+            if not trgt.Character or not trgt.Character:FindFirstChild("HumanoidRootPart") then
+                notif("Kruel", trgt.Name .. " is confirmed dead.", 2)
+            elseif trgt.Character.Humanoid.Health <= 0 then
+                notif("Kruel", trgt.Name .. " is confirmed dead.", 2)
+            else
+                notif("Kruel", trgt.Name .. " hasn't died.", 2)
+            end
+        end
+    end
 end)
 addcmd("voidtool", "Gives you a void tool.", function()
 	local tool = Instance.new("Tool")
