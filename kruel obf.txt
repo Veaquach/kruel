@@ -2259,13 +2259,9 @@ addcmd("antifling", "Prevents you from getting flung.", function()
     end)
 end)
 newflinging = false
-addcmd("void", "New fling (BETA)", function(args)
+addcmd("void", "Attempts to fling people into the void.", function(args)
     local trgt = findplr(args[1])[1]
     if trgt and trgt.Character and trgt.Character.HumanoidRootPart and trgt.Character.Humanoid and p.Character and p.Character.HumanoidRootPart then
-        if trgt.Character.Humanoid.SeatPart ~= nil then
-            notif("Kruel", "Player is sitting, cannot voidfling.", 3)
-            return
-        end
 		exec("unwalkfling")
 		exec("antisit")
 		exec("antitrip")
@@ -2318,7 +2314,7 @@ addcmd("void", "New fling (BETA)", function(args)
         yOffset,
         math.random() * 0.4 - 0.2
     )
-    hrp.AssemblyLinearVelocity = Vector3.new(0, math.random(-10000000000, 1000000000), 0)
+    hrp.AssemblyLinearVelocity = Vector3.new(0, math.random(-10000000000, -1000000000), 0)
     hrp.AssemblyAngularVelocity = Vector3.new(math.random(-10000000000, -1000000000), math.random(-10000000000, -1000000000), math.random(-10000000000, -1000000000))
     hum.HipHeight = 2
     rs.Stepped:Wait()
@@ -2609,12 +2605,11 @@ end)
 				conn:Disconnect()
 			end
 		end
-		for part, val in pairs(cachedcollides) do
-			if part and part.Parent then
-				part.CanCollide = val or true
+		for i, v in p.Character:GetDescendants() do
+			if v:IsA("BasePart") and v.Name ~= "HumanoidRootPart" then
+				v.CanCollide = true
 			end
 		end
-		cachedcollides = {}
 		if antifling then
         	antifling:Disconnect()
         	antifling = nil
