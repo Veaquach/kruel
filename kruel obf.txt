@@ -6,7 +6,7 @@
     If you share modified versions publicly, credit @Veaquach clearly in the description.
 
 	
-    Version: v1.6.5
+    Version: v1.7.0
     Server: https://discord.gg/pymGxT7KXR
     Author: Veaquach
 ]]
@@ -71,7 +71,7 @@ end
 	local tp = cloneref(game:GetService("TeleportService"))
 	local jobid = game.JobId
 	local placeid = game.PlaceId
-	local version = "v1.6.5"
+	local version = "v1.7.0"
 	local p = players.LocalPlayer
 	--local pg = p:WaitForChild("PlayerGui")
 	local psg = Instance.new("ScreenGui")
