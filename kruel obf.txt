@@ -1357,6 +1357,29 @@ addcmd("untpfreeze", "Stops tpfreeze.", function()
 		tpfreezeconn:Disconnect()
 	end
 end)
+addcmd("weldfreeze", "Freezes yourself using welds.", function()
+	if p and p.Character and p.Character.HumanoidRootPart then
+		local hrp = p.Character.HumanoidRootPart
+		local hrptoweld = hrp:Clone()
+		hrptoweld.Name = "HumanoidRootPart2"
+		hrptoweld.CanCollide = false
+		hrptoweld.Anchored = true
+		hrptoweld.CFrame = hrp.CFrame
+		hrptoweld.Parent = hrp.Parent
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = hrp
+		weld.Part1 = hrptoweld
+		weld.Parent = hrp
+	end	
+end)
+addcmd("unweldfreeze", "Stops weldfreeze.", function()
+	if p and p.Character and p.Character.HumanoidRootPart then
+		local weldtofind = p.Character:FindFirstChild("HumanoidRootPart"):FindFirstChildWhichIsA("WeldConstraint")
+		if weldtofind then
+			weldtofind:Destroy()
+		end
+	end	
+end)
 addcmd("antisit", "Prevents you from sitting.", function()
 	if p.Character and p.Character.Humanoid then
 		p.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
@@ -1426,61 +1449,7 @@ end)
 		l.GlobalShadows = false
 	end)
 	addcmd({"shop", "serverhop"}, "Goes to another server.", function()
-		local HttpService = cloneref(game:GetService("HttpService"))
-		local Players = players
-		local TeleportService = cloneref(game:GetService("TeleportService"))
-
-		if not p then
-			warn("[Shop] LocalPlayer not found. Make sure this runs on the client.")
-			return
-		end
-
-		local PlaceId = game.PlaceId
-		local JobId = game.JobId
-		local function TryServerHop()
-			local servers = {}
-
-			local success, req = pcall(function()
-				return game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Desc&limit=100&excludeFullGames=true")
-			end)
-
-			if not success or not req then
-				notif("Server Hop", "Failed to find servers, retrying soon...", 2)
-				return false
-			end
-
-			local body = HttpService:JSONDecode(req)
-			if body and body.data then
-				for _, v in pairs(body.data) do
-					if type(v) == "table"
-						and tonumber(v.playing)
-						and tonumber(v.maxPlayers)
-						and v.playing < v.maxPlayers
-						and v.id ~= JobId then
-						table.insert(servers, v.id)
-					end
-				end
-			end
-
-			if #servers > 0 then
-				local chosenServer = servers[math.random(1, #servers)]
-				print("[Shop] Teleporting to server: " .. chosenServer)
-				pcall(function()
-					TeleportService:TeleportToPlaceInstance(PlaceId, chosenServer, p)
-				end)
-				return true
-			else
-				notif("Server Hop", "Failed to find servers, retrying again soon...", 2)
-				return false
-			end
-		end
-		spawn(function()
-			while true do
-				local success = TryServerHop()
-				if success then break end
-				task.wait(math.random(3, 5))
-			end
-		end)
+		loadstring(game:HttpGet('https://raw.githubusercontent.com/Cesare0328/my-scripts/refs/heads/main/CachedServerhop.lua'))()
 	end)
 	addcmd({"chatlogs", "chatlog", "logs", "chatspy"}, "Logs the chat.", function()
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/Veaquach/kruel/refs/heads/main/kruellogs.txt"))() -- ts is not skidded btw i made it myself
@@ -1550,7 +1519,7 @@ function ESP(plr, char)
 	local bg = Instance.new("BillboardGui")
 	bg.Parent = head
 	bg.Name = "usphind coding is ud asf"
-	bg.Adornee = head
+	bg.Adornee = head	
 	bg.Size = UDim2.new(0, 100, 0, 150)
 	bg.StudsOffset = Vector3.new(0, 1, 0)
 	bg.AlwaysOnTop = true
@@ -1758,6 +1727,62 @@ addcmd("stopvelocity", "Stops velocity.", function()
 	p.Character.HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
 	p.Character.HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
 	task.wait()
+	end
+end)
+local glitchconn = nil
+local glitching = false
+local glitchdelay = 1
+addcmd("glitch", "Glitches you as you walk.", function()
+	if p.Character and p.Character.HumanoidRootPart then
+		glitching = true
+		glitchconn = task.spawn(function()
+		while glitching do
+				local hrp = p.Character.HumanoidRootPart
+				hrp.CFrame = hrp.CFrame * CFrame.new(math.random(-3, 3), 0, math.random(-3, 3))
+				task.wait(glitchdelay)
+			end
+		end)
+	end
+end)
+addcmd("unglitch", "Stops glitching.", function()
+	if glitchconn then
+		glitching = false
+		task.cancel(glitchconn)
+		glitchconn = nil
+	end
+end)
+addcmd("glitchdelay", "Changes the delay of glitch.", function(args)
+	if not tonumber(args[1]) then return end
+	glitchdelay = tonumber(args[1])
+end)
+local antitouchconn = nil
+local antitouchrange = 10
+addcmd({"antitouch", "antiskid"}, "Prevents you from getting touched by other players.", function()
+	antitouchconn = rs.Heartbeat:Connect(function()
+		for i, v in game.Players:GetPlayers() do
+			if v ~= p then
+				local hrp = v.Character.HumanoidRootPart
+				local hrp2 = p.Character.HumanoidRootPart
+				if hrp and hrp2 then
+					local mag = (hrp2.Position - hrp.Position)
+					local magg = mag.magnitude
+					if magg < antitouchrange then
+						local dir = mag.Unit
+						ts:Create(hrp2, TweenInfo.new(.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {CFrame = CFrame.new(hrp2.Position + (dir * 2)) * (hrp2.CFrame - hrp2.Position)}):Play()
+				end
+			end
+		end
+	end
+end)
+end)
+addcmd("antitouchrange", "Changes the range of antitouch.", function(args)
+	if not tonumber(args[1]) then return end
+	antitouchrange = tonumber(args[1])
+end)
+addcmd("unantitouch", "Stops antitouch.", function()
+	if antitouchconn then
+		antitouchconn:Disconnect()
+		antitouchconn = nil
 	end
 end)
 local lastcall = 0
@@ -2027,8 +2052,17 @@ end)
 	end)
 	--============================== END OF SKIDDING EZ ==============================
 	addcmd("whatexecutor", "Identifies executor.", function()
-		notif("Kruel", "Your executor is: " .. executor or "identifyexecutor() not available.", 3)
-	end)
+    local exec = executor or identifyexecutor and identifyexecutor() or "identifyexecutor() not available"
+    local id = (getthreadidentity and getthreadidentity())
+          or (getidentity and getidentity())
+          or "N/A"
+
+    notif(
+        "Kruel",
+        "Your executor is: " .. exec .. "\nIdentity level: " .. id,
+        3
+    )
+end)
 	local fovloop = nil
 	addcmd("fov", "Changes FOV", function(args)
 		if fovloop then fovloop:Disconnect() fovloop = nil end
@@ -2483,7 +2517,7 @@ addcmd("void", "New fling", function(args)
                 lasttime = curtime
                 lasty = cury
 
-            until (part.AssemblyLinearVelocity.Magnitude > 150) or hasdied or not newflinging or not part or not part.Parent or tick() - tc > 4
+            until (part.AssemblyLinearVelocity.Magnitude > 500) or hasdied or not newflinging or not part or not part.Parent or tick() - tc > 5
 
             if hrp and hrp.Parent then
                 hrp.Anchored = true
@@ -2505,7 +2539,13 @@ addcmd("void", "New fling", function(args)
                 hrp.Anchored = false
             end
             workspace.FallenPartsDestroyHeight = fallenparts
+			local tasktospawn = task.spawn(function()
+			for i = 1, 50 do
             workspace.CurrentCamera.CameraSubject = orgsub
+			rs.Heartbeat:Wait()
+			end
+			end)
+			task.cancel(tasktospawn)
             task.wait(0.01)
             if p.Character and p.Character.Humanoid then
                 local hum = p.Character.Humanoid
@@ -3031,7 +3071,7 @@ end)
 				local hrp = p.Character.HumanoidRootPart
 				if input.KeyCode == Enum.KeyCode.Space then
 					sitconn:Disconnect()
-					hrp.CFrame = head.CFrame * CFrame.new(0, 7, 0)
+					hrp.CFrame = head.CFrame * CFrame.new(0, 2, 0)
 					p.Character.Humanoid.Sit = false
 					exec("clip")
 					jumpsitconn:Disconnect()
