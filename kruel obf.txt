@@ -739,12 +739,17 @@ local function addcmd(names, desc, func)
 		if type(names) == "string" then
 			names = { names }
 		end
+		local displaynms = table.concat(names, " / ")
+
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(1, 0, 0, 15)
+
 		local name = names[1]
 		local btn = Instance.new("TextButton")
 		btn.Size = UDim2.new(1, 0, 0, 15)
-		btn.Text = "   " .. name
 		btn.TextColor3 = Color3.fromRGB(15, 15, 15)
 		btn.Font = Enum.Font.Gotham
+		btn.Text = "   " .. displaynms
 		btn.TextSize = 14
 		btn.BackgroundTransparency = 0
 		btn.BackgroundColor3 = Color3.fromRGB(225, 225, 225)
@@ -2781,6 +2786,30 @@ addcmd("untpwalk", "Stop tpwalking", function()
 	tpwalking = false
 	notif("Kruel", "Stopped TP walking.", 2)
 	return
+end)
+addcmd("spook", "Scares a player by teleporting infront of them for half a second.", function(args)
+	local target = findplr(args[1])[1]
+	if not target then
+		return
+	end
+	local hrp = p.Character.HumanoidRootPart
+	local backcf = hrp.CFrame + hrp.CFrame.lookVector
+	local targethrp = target.Character.HumanoidRootPart
+	hrp.CFrame = targethrp.CFrame * CFrame.new(0, 0, -2)
+	hrp.CFrame = CFrame.lookAt(hrp.Position, targethrp.Position)
+	task.wait(0.5)
+	hrp.CFrame = backcf
+end)
+addcmd("lookat", "Looks at a player", function(args)
+	local target = findplr(args[1])[1]
+	if not target then
+		return
+	end
+	if not p.Character or not p.Character:FindFirstChild("HumanoidRootPart") or not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then
+		return
+	end
+	local hrp = p.Character.HumanoidRootPart
+	hrp.CFrame = CFrame.lookAt(hrp.Position, target.Character.HumanoidRootPart.Position)
 end)
 addcmd("gravity", "Changes gravity.", function(args)
 	local grav = tonumber(args[1])
