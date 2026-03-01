@@ -2065,7 +2065,7 @@ addcmd("bhop", "Turns on bhop.", function()
 	bhopconn = rs.Heartbeat:Connect(function()
 		local hrp = p.Character.Humanoid
 		if hrp.FloorMaterial ~= Enum.Material.Air then
-			hrp:ChangeState(Enum.HumanoidStateType.Jumping)
+			presskey(Enum.KeyCode.Space)
 		end
 	end)
 end)
