@@ -116,7 +116,7 @@ function Fling(part)
 	local lastvel = part.AssemblyLinearVelocity
 	local lasttime = tick()
 	local lasty = part.Position.Y
-
+	local orghipheight = hum.HipHeight
 	repeat
 		local dtstart = tick()
 		local curvel = part.AssemblyLinearVelocity
@@ -196,12 +196,12 @@ function Fling(part)
 
 		local flatpos = (part.CFrame + (predictedvel * lookahead)).Position
 		local predicted = CFrame.new(flatpos.X, part.Position.Y + yoffset, flatpos.Z)
-
-		char:PivotTo(predicted * CFrame.Angles(math.random() > 0.3 and 90 or -135, 90, -180))
+		hum.HipHeight = 2
+		char:PivotTo(predicted * CFrame.Angles(math.rad(270), 0, 0))
 		hrp.Velocity = -Vector3.new(1e35, 1e250, 1e35)
 		hrp.RotVelocity = -Vector3.new(1e35, 1e30, 1e35)
-		hrp.AssemblyLinearVelocity = Vector3.new(0, 1e30, 0)
-		hrp.AssemblyAngularVelocity = Vector3.new(math.random() > 0.3 and 90 or -135, 90, -180) * 100
+		hrp.AssemblyLinearVelocity = -Vector3.new(0, 1e30, 0)
+		hrp.AssemblyAngularVelocity = -Vector3.new(0, 1e100, 0) * 100
 		workspace.CurrentCamera.CameraSubject = part
 
 		lastvel = curvel
@@ -213,9 +213,15 @@ function Fling(part)
 	flinging = false
 	hrp.Anchored = true
 	task.wait()
+	local ahhahaha
+	ahhahaha = task.spawn(function()
+	while true do
+	hrp.CFrame = originalCF
 	hrp.Velocity = Vector3.zero
 	hrp.RotVelocity = Vector3.zero
-	hrp.CFrame = originalCF
+	task.wait(0.01)
+	end
+end)
 	hrp.Anchored = false
 	workspace.FallenPartsDestroyHeight = fallenparts
 	workspace.CurrentCamera.CameraSubject = originalSubject
@@ -224,6 +230,9 @@ function Fling(part)
 	hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, true)
 	hum:ChangeState(Enum.HumanoidStateType.GettingUp)
 	hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+	hum.HipHeight = orghipheight
+	task.wait(1)
+	task.cancel(ahhahaha)
 end
 
 local FLYING = false
@@ -433,7 +442,7 @@ local function notif(title, text, delay) -- no idea how i made it this good 🤣
 	local clickconn = nil
 	clickconn = notifbox.InputBegan:Connect(function(input)
 		if
-			input.UserInputType == Enum.UserInputType.MouseButton1
+			input.UserInputType == Enum.UserInputType.MouseButton1 
 			or input.UserInputType == Enum.UserInputType.Touch
 		then
 			isnotifying = false
@@ -555,6 +564,16 @@ task.spawn(function()
 			return
 		end
 		ts:Create(fr, tii, { Position = UDim2.new(0, fr.Position.X.Offset, 0.985, 0) }):Play()
+	end)
+	fr.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch then
+			ts:Create(fr, tii, { Position = UDim2.new(0, 0, 0.77, 0) }):Play()
+		end
+	end)
+	fr.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch then
+			ts:Create(fr, tii, { Position = UDim2.new(0, fr.Position.X.Offset, 0.985, 0) }):Play()
+		end
 	end)
 end)
 local drg = Instance.new("TextLabel")
@@ -1123,7 +1142,7 @@ addcmd("notify", "Notifies you.", function(args)
 	local title = args[1]
 	local text = args[2]
 	local duration = tonumber(args[3])
-	notif((title or "No text provided."), (text or "No text provided."), (duration or 3))
+	notif((title or "No title provided."), (text or "No text provided."), (duration or 3))
 end)
 addcmd({ "reset", "re" }, "Resets character.", function()
 	if p.Character and p.Character.Head then
@@ -1578,6 +1597,18 @@ end)
 addcmd("sit", "Take a break.", function()
 	p.Character.Humanoid.Sit = math.deg(2)
 		+ (5 * 7 - 42 - (3 * 38) + (math.deg(2 / (4 * 2 / 4) - 0.05 * 20 + 0.1 * 20 / 2) - 2 - 8 - (5 * (5 + 4))))
+end)
+addcmd("trip", "Fall over forward", function()
+    local char = p.Character
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChild("Humanoid")
+
+    if hrp and hum then
+        hum:ChangeState(Enum.HumanoidStateType.FallingDown)
+        
+        local shovedir = hrp.CFrame.LookVector * (hrp.AssemblyMass * 30)
+        hrp:ApplyImpulse(shovedir)
+    end
 end)
 addcmd({ "ref", "refresh" }, "Respawn at same position.", function()
 	if p.Character and p.Character.HumanoidRootPart then
@@ -2534,8 +2565,23 @@ end)
 addcmd("whatexecutor", "Identifies executor.", function()
 	local exec = executor or identifyexecutor and identifyexecutor() or "identifyexecutor() not available"
 	local id = (getthreadidentity and getthreadidentity()) or (getidentity and getidentity()) or "N/A"
-
-	notif("Kruel", "Your executor is: " .. exec .. "\nIdentity level: " .. id, 3)
+	local isinternal = false
+	local a = setmetatable({}, {
+		__index = function()
+			return 1
+		end,
+	})
+	pcall(function()
+		hookmetamethod(a, "__index", function()
+			return "GG"
+		end)
+	end)
+	if a.b == "GG" then
+		isinternal = true
+	else
+		isinternal = false
+	end
+	notif("Kruel", "Your executor is: " .. exec .. "\nIdentity level: " .. id .. "\nInternal Executor: " .. (isinternal and "True" or "False"), 3)
 end)
 local fovloop = nil
 addcmd("fov", "Changes FOV", function(args)
@@ -2805,7 +2851,12 @@ addcmd("lookat", "Looks at a player", function(args)
 	if not target then
 		return
 	end
-	if not p.Character or not p.Character:FindFirstChild("HumanoidRootPart") or not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then
+	if
+		not p.Character
+		or not p.Character:FindFirstChild("HumanoidRootPart")
+		or not target.Character
+		or not target.Character:FindFirstChild("HumanoidRootPart")
+	then
 		return
 	end
 	local hrp = p.Character.HumanoidRootPart
@@ -2853,7 +2904,6 @@ addcmd("antifling", "Prevents you from getting flung.", function()
 	end
 	antiflingcharadded = {}
 	antiflingdescadded = {}
-	exec("tpwalk .65")
 	local function setuppart(v)
 		if v:IsA("BasePart") then
 			task.spawn(function()
@@ -2938,6 +2988,7 @@ addcmd("void", "New fling", function(args)
 			workspace.FallenPartsDestroyHeight = 0 / 0
 			local orgsub = workspace.CurrentCamera.CameraSubject
 			workspace.CurrentCamera.CameraSubject = part.Parent.Humanoid
+			local hum = p.Character.Humanoid
 
 			local velhist = {}
 			local accelhist = {}
@@ -3040,16 +3091,14 @@ addcmd("void", "New fling", function(args)
 				if isjumping then
 					yoffset = yoffset + (avgyvel * lookahead * 0.8)
 				end
-
 				local flatpos = (part.CFrame + (predictedvel * lookahead)).Position
 				local predicted = CFrame.new(flatpos.X, part.Position.Y + yoffset, flatpos.Z)
-
 				hrp.CFrame = predicted * CFrame.new(math.random() * 0.6 - 0.1, 0, math.random() * 0.6 - 0.1)
-				hrp.AssemblyLinearVelocity = Vector3.new(0, math.random(-50000000000, -5000000000), 0)
+				hrp.AssemblyLinearVelocity = Vector3.new(0, math.random(-10000000000, -1000000000), 0)
 				hrp.AssemblyAngularVelocity = Vector3.new(
-					math.random(-10000000000, -1000000000),
-					math.random(-10000000000, -1000000000),
-					math.random(-10000000000, -1000000000)
+					math.random(-50000000000, -5000000000),
+					math.random(-50000000000, -5000000000),
+					math.random(-50000000000, -5000000000)
 				)
 				hum.HipHeight = 2
 				rs.Stepped:Wait()
@@ -3092,14 +3141,16 @@ addcmd("void", "New fling", function(args)
 				hrp.Anchored = false
 			end
 			workspace.FallenPartsDestroyHeight = fallenparts
-			local tasktospawn = task.spawn(function()
+			local tasktospawn
+			tasktospawn = task.spawn(function()
 				for i = 1, 50 do
 					exec("unview")
 					rs.RenderStepped:Wait()
 				end
 			end)
-			task.cancel(tasktospawn)
 			task.wait(0.01)
+			task.cancel(tasktospawn)
+			tasktospawn = nil
 			if p.Character and p.Character.Humanoid then
 				local hum = p.Character.Humanoid
 				hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
@@ -3107,6 +3158,7 @@ addcmd("void", "New fling", function(args)
 				hum:ChangeState(Enum.HumanoidStateType.GettingUp)
 				hum.PlatformStand = false
 				hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+				hum:SetStateEnabled(Enum.HumanoidStateType.Running, true)
 			end
 
 			diedconn:Disconnect()
@@ -4028,7 +4080,7 @@ clbtn.Parent = drgfr
 local tss = game:GetService("TweenService")
 local tiii = TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 clbtn.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		if frr.Size == UDim2.new(0, 350, 0, 500) then
 			tss:Create(frr, tiii, { Size = UDim2.new(0, 350, 0, 0) }):Play()
 			tss:Create(fr2, tiii, { Size = UDim2.new(0, 350, 0, 0) }):Play()
@@ -4041,7 +4093,7 @@ clbtn.InputBegan:Connect(function(input)
 	end
 end)
 mnbtn.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		tss:Create(frr, tiii, { Position = UDim2.new(0, frr.Position.X.Offset, 0, -1000) }):Play()
 	end
 end)
@@ -4049,7 +4101,7 @@ local draggingg = false
 local dragStartt
 local startPoss
 drgfr.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		draggingg = true
 		-- yayyyy line 2000 woohoo yay my biggest project (already was ez) to anyone seeing this: <3 (idk if this is line 2000 anymore maybe i update when i need to maybe not ezz) ts is line 2114 now wow
 		dragStartt = input.Position
@@ -4058,13 +4110,13 @@ drgfr.InputBegan:Connect(function(input)
 end)
 
 drgfr.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		draggingg = false
 	end
 end)
 local UIS = cloneref(game:GetService("UserInputService"))
 UIS.InputChanged:Connect(function(input)
-	if draggingg and input.UserInputType == Enum.UserInputType.MouseMovement then
+	if draggingg and input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
 		local delta = input.Position - dragStartt
 		ts:Create(frr, tii, {
 			Position = UDim2.new(
@@ -4077,6 +4129,10 @@ UIS.InputChanged:Connect(function(input)
 	end
 end)
 addcmd({ "cmds", "help" }, "Lists all commands.", function()
+	if frr.Visible == true then
+		frr.Visible = false
+		return
+	end
 	frr.Position = UDim2.new(0.5, -175, 0.5, -250)
 	frr.Visible = true
 end)
