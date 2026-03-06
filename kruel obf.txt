@@ -6,7 +6,7 @@
 	If you share modified versions publicly, credit @Veaquach clearly in the description.
 
 	
-	Version: v1.7.5
+	Version: v1.8.0
 	Server: https://discord.gg/pymGxT7KXR
 	Author: Veaquach
 ]]
@@ -84,7 +84,7 @@ local walkflinging = false
 local tp = cloneref(game:GetService("TeleportService"))
 local jobid = game.JobId
 local placeid = game.PlaceId
-local version = "v1.7.5"
+local version = "v1.8.0"
 local p = players.LocalPlayer
 --local pg = p:WaitForChild("PlayerGui")
 local psg = Instance.new("ScreenGui")
@@ -215,13 +215,13 @@ function Fling(part)
 	task.wait()
 	local ahhahaha
 	ahhahaha = task.spawn(function()
-	while true do
-	hrp.CFrame = originalCF
-	hrp.Velocity = Vector3.zero
-	hrp.RotVelocity = Vector3.zero
-	task.wait(0.01)
-	end
-end)
+		while true do
+			hrp.CFrame = originalCF
+			hrp.Velocity = Vector3.zero
+			hrp.RotVelocity = Vector3.zero
+			task.wait(0.01)
+		end
+	end)
 	hrp.Anchored = false
 	workspace.FallenPartsDestroyHeight = fallenparts
 	workspace.CurrentCamera.CameraSubject = originalSubject
@@ -442,7 +442,7 @@ local function notif(title, text, delay) -- no idea how i made it this good 🤣
 	local clickconn = nil
 	clickconn = notifbox.InputBegan:Connect(function(input)
 		if
-			input.UserInputType == Enum.UserInputType.MouseButton1 
+			input.UserInputType == Enum.UserInputType.MouseButton1
 			or input.UserInputType == Enum.UserInputType.Touch
 		then
 			isnotifying = false
@@ -967,7 +967,7 @@ p.Chatted:Connect(function(msg)
 end)
 local flung = {}
 
-addcmd({ "fling", "kill" }, "Flings anyone you want.", function(args)
+addcmd("fling", "Flings anyone you want.", function(args)
 	local vctms = findplr(args[1])
 
 	if #vctms == 0 then
@@ -1109,8 +1109,100 @@ addcmd("loopgoto", "Loops goto.", function(args)
 	local vctms = findplr(args[1])
 	local trgt = vctms[1]
 	if trgt and trgt.Character and trgt.Character.HumanoidRootPart and p.Character and p.Character.HumanoidRootPart then
+		-- Initialize prediction variables
+		local velhist = {}
+		local accelhist = {}
+		local histsize = 4
+		local hum = trgt.Character.Humanoid
+		local expecteddt = 1 / math.max(getfpscap(), 30)
+		local lastvel = trgt.Character.HumanoidRootPart.AssemblyLinearVelocity
+		local lasttime = tick()
+
 		loopgotoconn = rs.Heartbeat:Connect(function()
-			p.Character.HumanoidRootPart.CFrame = trgt.Character.HumanoidRootPart.CFrame
+			if
+				trgt.Character
+				and trgt.Character:FindFirstChild("HumanoidRootPart")
+				and p.Character
+				and p.Character:FindFirstChild("HumanoidRootPart")
+			then
+				local dtstart = tick()
+				local targethrp = trgt.Character.HumanoidRootPart
+				local myhrp = p.Character.HumanoidRootPart
+
+				-- Calculate prediction
+				local dt = tick() - dtstart
+				dt = math.clamp(dt, expecteddt * 0.5, expecteddt * 4)
+
+				local curvel = targethrp.AssemblyLinearVelocity
+				local curtime = tick()
+				local accel = (curvel - lastvel) / math.max(curtime - lasttime, 0.001)
+
+				table.insert(velhist, Vector3.new(curvel.X, curvel.Y, curvel.Z))
+				if #velhist > histsize then
+					table.remove(velhist, 1)
+				end
+
+				table.insert(accelhist, Vector3.new(accel.X, accel.Y, accel.Z))
+				if #accelhist > histsize then
+					table.remove(accelhist, 1)
+				end
+
+				local avgvl = Vector3.zero
+				for _, v in pairs(velhist) do
+					avgvl += v
+				end
+				avgvl /= #velhist
+
+				local avgaccel = Vector3.zero
+				for _, a in pairs(accelhist) do
+					avgaccel += a
+				end
+				avgaccel /= #accelhist
+
+				local speed = avgvl.Magnitude
+				local walkspeed = hum.WalkSpeed
+				local speedratio = speed / math.max(walkspeed, 0.1)
+
+				local basepredmin = 0.05
+				local basepredmax = 0.15
+				local speedinfluence = 0.03
+				local maxspeedinfluence = 0.08
+
+				local dynmin =
+					math.clamp(basepredmin + speedratio * speedinfluence, basepredmin, basepredmin + speedinfluence * 2)
+				local dynmax = math.clamp(
+					basepredmax + speedratio * maxspeedinfluence,
+					basepredmax + maxspeedinfluence * 0.5,
+					basepredmax + maxspeedinfluence * 2
+				)
+				local predmulti = math.clamp(speedratio, dynmin, dynmax)
+
+				local lagmultiplier = 1.5
+				local pingmultiplier = 0.8
+				local lagoffset = math.max(dt - expecteddt, 0) * lagmultiplier
+				local pingcomp = lagoffset + dt * pingmultiplier
+				local lookahead = predmulti + pingcomp
+
+				local accelweight = 0.25
+				local accelcomp = avgaccel * (lookahead * accelweight)
+				local predictedvel = avgvl + accelcomp
+
+				-- Apply prediction (horizontal only, keep original Y position)
+				local predictedpos = targethrp.Position + (predictedvel * lookahead)
+				local predicted = CFrame.new(predictedpos.X, targethrp.Position.Y, predictedpos.Z)
+					* (targethrp.CFrame - targethrp.CFrame.Position)
+
+				myhrp.CFrame = predicted
+				myhrp.Velocity = Vector3.new(0, 0, 0)
+				myhrp.RotVelocity = Vector3.new(0, 0, 0)
+
+				lastvel = curvel
+				lasttime = curtime
+			else
+				if loopgotoconn then
+					loopgotoconn:Disconnect()
+				end
+			end
 		end)
 	end
 end)
@@ -1239,63 +1331,51 @@ end)
 local spinflinging = false
 local spinflingdied = nil
 local bav = nil
+local zzzz, haha = nil, nil
 addcmd("spinfling", "Flings people by spinning very fast.", function()
-	local hum = p.Character.Humanoid
-	if not hum or not p.Character or not p.Character.HumanoidRootPart then
-		return
-	end
-	if spinflinging then
-		if spinflingdied then
-			spinflingdied:Disconnect()
-		end
-		spinflinging = false
-		if bav then
-			bav:Destroy()
-		end
-		exec("clip")
-		if p.Character and p.Character.Humanoid then
-			p.Character.Humanoid.AutoRotate = true
-		end
-		return
-	end
-	exec("noclip")
-	task.wait(0.1)
-	notif("Kruel", "To stop spinflinging, execute the command again.", 3)
-	spinflinging = true
+	spinflinging = false
 	for _, child in pairs(p.Character:GetDescendants()) do
 		if child:IsA("BasePart") then
 			child.CustomPhysicalProperties = PhysicalProperties.new(100, 0.3, 0.5)
 		end
 	end
-	bav = Instance.new("BodyAngularVelocity")
-	bav.AngularVelocity = Vector3.new(0, 999999, 0)
-	bav.MaxTorque = Vector3.new(0, math.huge, 0)
-	bav.P = math.huge
-	bav.Parent = p.Character.HumanoidRootPart
-	hum.AutoRotate = false
-	spinflingdied = hum.Died:Connect(function()
-		if spinflinging then
-			if spinflingdied then
-				spinflingdied:Disconnect()
-			end
-			spinflinging = false
-			if bav then
-				bav:Destroy()
-			end
-			exec("clip")
+	exec("noclip")
+	task.wait(0.1)
+	zzzz = Instance.new("BodyAngularVelocity")
+	zzzz.Parent = p.Character.HumanoidRootPart
+	zzzz.AngularVelocity = Vector3.new(0, 99999, 0)
+	zzzz.MaxTorque = Vector3.new(0, math.huge, 0)
+	zzzz.P = math.huge
+	local char = p.Character:GetChildren()
+	for i, v in next, char do
+		if v:IsA("BasePart") then
+			v.CanCollide = false
+			v.Massless = true
+			v.Velocity = Vector3.zero
 		end
+	end
+	spinflinging = true
+	spinflingdied = p.Character:FindFirstChildOfClass("Humanoid").Died:Connect(function()
+		exec("unspinfling")
 	end)
-	task.spawn(function()
-		while spinflinging do
-			bav.AngularVelocity = Vector3.new(0, 999999, 0)
+	haha = task.spawn(function()
+		repeat
+			zzzz.AngularVelocity = Vector3.new(0, 999995, 0)
 			task.wait(0.2)
-			bav.AngularVelocity = Vector3.new(0, 0, 0)
+			zzzz.AngularVelocity = Vector3.new(0, 0, 0)
 			task.wait(0.1)
-		end
-		if bav and bav.Parent then
-			bav:Destroy()
-		end
+		until spinflinging == false
 	end)
+end)
+addcmd("unspinfling", "Stops spinfling.", function()
+	spinflinging = false
+	exec("clip")
+	if spinflingdied then
+		spinflingdied:Disconnect()
+	end
+	if zzzz then
+		zzzz:Destroy()
+	end
 end)
 local flashbackpos = nil
 local flashbackdied = nil
@@ -1599,16 +1679,16 @@ addcmd("sit", "Take a break.", function()
 		+ (5 * 7 - 42 - (3 * 38) + (math.deg(2 / (4 * 2 / 4) - 0.05 * 20 + 0.1 * 20 / 2) - 2 - 8 - (5 * (5 + 4))))
 end)
 addcmd("trip", "Fall over forward", function()
-    local char = p.Character
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    local hum = char:FindFirstChild("Humanoid")
+	local char = p.Character
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	local hum = char:FindFirstChild("Humanoid")
 
-    if hrp and hum then
-        hum:ChangeState(Enum.HumanoidStateType.FallingDown)
-        
-        local shovedir = hrp.CFrame.LookVector * (hrp.AssemblyMass * 30)
-        hrp:ApplyImpulse(shovedir)
-    end
+	if hrp and hum then
+		hum:ChangeState(Enum.HumanoidStateType.FallingDown)
+
+		local shovedir = hrp.CFrame.LookVector * (hrp.AssemblyMass * 30)
+		hrp:ApplyImpulse(shovedir)
+	end
 end)
 addcmd({ "ref", "refresh" }, "Respawn at same position.", function()
 	if p.Character and p.Character.HumanoidRootPart then
@@ -2581,7 +2661,16 @@ addcmd("whatexecutor", "Identifies executor.", function()
 	else
 		isinternal = false
 	end
-	notif("Kruel", "Your executor is: " .. exec .. "\nIdentity level: " .. id .. "\nInternal Executor: " .. (isinternal and "True" or "False"), 3)
+	notif(
+		"Kruel",
+		"Your executor is: "
+			.. exec
+			.. "\nIdentity level: "
+			.. id
+			.. "\nInternal Executor: "
+			.. (isinternal and "True" or "False"),
+		3
+	)
 end)
 local fovloop = nil
 addcmd("fov", "Changes FOV", function(args)
@@ -2942,7 +3031,7 @@ addcmd("antifling", "Prevents you from getting flung.", function()
 	end)
 end)
 newflinging = false
-addcmd("void", "New fling", function(args)
+addcmd({ "void", "kill" }, "New fling", function(args)
 	local trgts = findplr(args[1])
 	newflinging = true
 	for _, trgt in pairs(trgts) do
@@ -3805,183 +3894,181 @@ addcmd("mm22", "Loads a Murder Mystery 2 script.", function()
 	notif("Kruel", "Please also try ;mm2, it's a new script in development.", 3)
 end)
 addcmd("headsit", "Headsit", function(args)
-    local trgts = findplr(args[1])
-    local trgt = trgts[1]
-    if trgt ~= p and trgt.Character and trgt.Character.Head and p.Character and p.Character.HumanoidRootPart then
-        if sitconn then
-            sitconn:Disconnect()
-        end
-        if jumpsitconn then
-            jumpsitconn:Disconnect()
-        end
-        exec("noclip")
-        
-        -- Prediction variables
-        local velhist = {}
-        local accelhist = {}
-        local yhist = {}
-        local histsize = 4
-        local hum = trgt.Character.Humanoid
-        local expecteddt = 1 / math.max(getfpscap(), 30)
-        local lastvel = trgt.Character.Head.AssemblyLinearVelocity
-        local lasttime = tick()
-        local lasty = trgt.Character.Head.Position.Y
-        
-        jumpsitconn = uis.InputBegan:Connect(function(input, gpe)
-            if gpe then
-                return
-            end
-            local head = trgt.Character.Head
-            local hrp = p.Character.HumanoidRootPart
-            if input.KeyCode == Enum.KeyCode.Space then
-                sitconn:Disconnect()
-                hrp.CFrame = head.CFrame * CFrame.new(0, 2, 0)
-                p.Character.Humanoid.Sit = false
-                exec("clip")
-                jumpsitconn:Disconnect()
-            end
-        end)
-        
-        local head = trgt.Character.Head
-        local hrp = p.Character.HumanoidRootPart
-        hrp.CFrame = head.CFrame * CFrame.new(0, 2, 0)
-        sitconn = rs.Heartbeat:Connect(function()
-            if
-                trgt.Character
-                and trgt.Character:FindFirstChild("Head")
-                and p.Character
-                and p.Character:FindFirstChild("HumanoidRootPart")
-            then
-                local dtstart = tick()
-                local head = trgt.Character.Head
-                local hrp = p.Character.HumanoidRootPart
-                p.Character.Humanoid.Sit = true
-                
-                -- Calculate prediction
-                local dt = tick() - dtstart
-                dt = math.clamp(dt, expecteddt * 0.5, expecteddt * 4)
-                
-                local curvel = head.AssemblyLinearVelocity
-                local curtime = tick()
-                local cury = head.Position.Y
-                local accel = (curvel - lastvel) / math.max(curtime - lasttime, 0.001)
-                local yvel = (cury - lasty) / math.max(curtime - lasttime, 0.001)
-                
-                table.insert(velhist, Vector3.new(curvel.X, curvel.Y, curvel.Z))
-                if #velhist > histsize then
-                    table.remove(velhist, 1)
-                end
-                
-                table.insert(accelhist, Vector3.new(accel.X, accel.Y, accel.Z))
-                if #accelhist > histsize then
-                    table.remove(accelhist, 1)
-                end
-                
-                table.insert(yhist, yvel)
-                if #yhist > histsize then
-                    table.remove(yhist, 1)
-                end
-                
-                local avgvl = Vector3.zero
-                for _, v in pairs(velhist) do
-                    avgvl += v
-                end
-                avgvl /= #velhist
-                
-                local avgaccel = Vector3.zero
-                for _, a in pairs(accelhist) do
-                    avgaccel += a
-                end
-                avgaccel /= #accelhist
-                
-                local avgyvel = 0
-                for _, y in pairs(yhist) do
-                    avgyvel += y
-                end
-                avgyvel /= #yhist
-                
-                local accelchange = (accel - avgaccel).Magnitude
-                local jumpthreshold = hum.JumpPower * 0.6
-                local isjumping = math.abs(avgyvel) > jumpthreshold or math.abs(yvel) > (jumpthreshold * 1.8)
-                local accelthreshold = hum.WalkSpeed * 7.5
-                local ischangingdir = accelchange > accelthreshold
-                
-                local speed = avgvl.Magnitude
-                local walkspeed = hum.WalkSpeed
-                local speedratio = speed / math.max(walkspeed, 0.1)
-                
-                -- Much smaller base prediction for headsit
-                local basepredmin = 0.05
-                local basepredmax = 0.15
-                local speedinfluence = 0.03
-                local maxspeedinfluence = 0.08
-                
-                local dynmin = math.clamp(basepredmin + speedratio * speedinfluence, basepredmin, basepredmin + speedinfluence * 2)
-                local dynmax = math.clamp(basepredmax + speedratio * maxspeedinfluence, basepredmax + maxspeedinfluence * 0.5, basepredmax + maxspeedinfluence * 2)
-                local predmulti = math.clamp(speedratio, dynmin, dynmax)
-                
-                -- Lighter lag compensation
-                local lagmultiplier = 1.5
-                local pingmultiplier = 0.8
-                local lagoffset = math.max(dt - expecteddt, 0) * lagmultiplier
-                local pingcomp = lagoffset + dt * pingmultiplier
-                local lookahead = predmulti + pingcomp
-                
-                -- Much more dampened on jumps, less on direction changes
-                local jumplookaheadmulti = 0.5
-                local jumpacceldamp = 0.15
-                local dirlookaheadmulti = 0.4
-                local diracceldamp = 0.2
-                
-                if isjumping then
-                    lookahead = lookahead * jumplookaheadmulti
-                    avgaccel = avgaccel * jumpacceldamp
-                elseif ischangingdir then
-                    lookahead = lookahead * dirlookaheadmulti
-                    avgaccel = avgaccel * diracceldamp
-                end
-                
-                local accelweight = 0.25
-                local accelcomp = avgaccel * (lookahead * accelweight)
-                local predictedvel = avgvl + accelcomp
-                
-                -- Dynamic offset calculation
-                local headsizey = head.Size.Y / 2
-                local hrpsizey = hrp.Size.Y / 2
-                local basegap = 0.2
-                local offset = headsizey + hrpsizey + basegap
-                
-                if isjumping then
-                    local yvelweight = 0.15
-                    offset = offset + (avgyvel * lookahead * yvelweight)
-                end
-                
-                local flatpos = (head.CFrame + (predictedvel * lookahead)).Position
-                -- Use head's rotation and apply offset with that rotation
-                local predicted = head.CFrame * CFrame.new(0, offset, 0)
-                predicted = CFrame.new(flatpos.X, flatpos.Y + offset, flatpos.Z) * (head.CFrame - head.CFrame.Position)
-                
-                hrp.CFrame = predicted
-                hrp.Velocity = Vector3.new(0, 0, 0)
-                hrp.RotVelocity = Vector3.new(0, 0, 0)
-                
-                lastvel = curvel
-                lasttime = curtime
-                lasty = cury
-            else
-                if sitconn then
-                    sitconn:Disconnect()
-                end
-                if jumpsitconn then
-                    jumpsitconn:Disconnect()
-                end
-                exec("clip")
-                p.Character.Humanoid.Sit = false
-            end
-        end)
-    else
-        notif("Kruel", "Target player is either dead, not found, or is you.", 3)
-    end
+	local trgts = findplr(args[1])
+	local trgt = trgts[1]
+	if trgt ~= p and trgt.Character and trgt.Character.Head and p.Character and p.Character.HumanoidRootPart then
+		if sitconn then
+			sitconn:Disconnect()
+		end
+		if jumpsitconn then
+			jumpsitconn:Disconnect()
+		end
+		exec("noclip")
+
+		local velhist = {}
+		local accelhist = {}
+		local yhist = {}
+		local histsize = 4
+		local hum = trgt.Character.Humanoid
+		local expecteddt = 1 / math.max(getfpscap(), 30)
+		local lastvel = trgt.Character.Head.AssemblyLinearVelocity
+		local lasttime = tick()
+		local lasty = trgt.Character.Head.Position.Y
+
+		jumpsitconn = uis.InputBegan:Connect(function(input, gpe)
+			if gpe then
+				return
+			end
+			local head = trgt.Character.Head
+			local hrp = p.Character.HumanoidRootPart
+			if input.KeyCode == Enum.KeyCode.Space then
+				sitconn:Disconnect()
+				hrp.CFrame = head.CFrame * CFrame.new(0, 2, 0)
+				p.Character.Humanoid.Sit = false
+				exec("clip")
+				jumpsitconn:Disconnect()
+			end
+		end)
+
+		local head = trgt.Character.Head
+		local hrp = p.Character.HumanoidRootPart
+		hrp.CFrame = head.CFrame * CFrame.new(0, 2, 0)
+		sitconn = rs.Heartbeat:Connect(function()
+			if
+				trgt.Character
+				and trgt.Character:FindFirstChild("Head")
+				and p.Character
+				and p.Character:FindFirstChild("HumanoidRootPart")
+			then
+				local dtstart = tick()
+				local head = trgt.Character.Head
+				local hrp = p.Character.HumanoidRootPart
+				p.Character.Humanoid.Sit = true
+
+				-- Calculate prediction
+				local dt = tick() - dtstart
+				dt = math.clamp(dt, expecteddt * 0.5, expecteddt * 4)
+
+				local curvel = head.AssemblyLinearVelocity
+				local curtime = tick()
+				local cury = head.Position.Y
+				local accel = (curvel - lastvel) / math.max(curtime - lasttime, 0.001)
+				local yvel = (cury - lasty) / math.max(curtime - lasttime, 0.001)
+
+				table.insert(velhist, Vector3.new(curvel.X, curvel.Y, curvel.Z))
+				if #velhist > histsize then
+					table.remove(velhist, 1)
+				end
+
+				table.insert(accelhist, Vector3.new(accel.X, accel.Y, accel.Z))
+				if #accelhist > histsize then
+					table.remove(accelhist, 1)
+				end
+
+				table.insert(yhist, yvel)
+				if #yhist > histsize then
+					table.remove(yhist, 1)
+				end
+
+				local avgvl = Vector3.zero
+				for _, v in pairs(velhist) do
+					avgvl += v
+				end
+				avgvl /= #velhist
+
+				local avgaccel = Vector3.zero
+				for _, a in pairs(accelhist) do
+					avgaccel += a
+				end
+				avgaccel /= #accelhist
+
+				local avgyvel = 0
+				for _, y in pairs(yhist) do
+					avgyvel += y
+				end
+				avgyvel /= #yhist
+
+				local accelchange = (accel - avgaccel).Magnitude
+				local jumpthreshold = hum.JumpPower * 0.6
+				local isjumping = math.abs(avgyvel) > jumpthreshold or math.abs(yvel) > (jumpthreshold * 1.8)
+				local accelthreshold = hum.WalkSpeed * 7.5
+				local ischangingdir = accelchange > accelthreshold
+
+				local speed = avgvl.Magnitude
+				local walkspeed = hum.WalkSpeed
+				local speedratio = speed / math.max(walkspeed, 0.1)
+
+				local basepredmin = 0.05
+				local basepredmax = 0.15
+				local speedinfluence = 0.03
+				local maxspeedinfluence = 0.08
+
+				local dynmin =
+					math.clamp(basepredmin + speedratio * speedinfluence, basepredmin, basepredmin + speedinfluence * 2)
+				local dynmax = math.clamp(
+					basepredmax + speedratio * maxspeedinfluence,
+					basepredmax + maxspeedinfluence * 0.5,
+					basepredmax + maxspeedinfluence * 2
+				)
+				local predmulti = math.clamp(speedratio, dynmin, dynmax)
+
+				local lagmultiplier = 1.5
+				local pingmultiplier = 0.8
+				local lagoffset = math.max(dt - expecteddt, 0) * lagmultiplier
+				local pingcomp = lagoffset + dt * pingmultiplier
+				local lookahead = predmulti + pingcomp
+				local jumplookaheadmulti = 0.5
+				local jumpacceldamp = 0.15
+				local dirlookaheadmulti = 0.4
+				local diracceldamp = 0.2
+
+				if isjumping then
+					lookahead = lookahead * jumplookaheadmulti
+					avgaccel = avgaccel * jumpacceldamp
+				elseif ischangingdir then
+					lookahead = lookahead * dirlookaheadmulti
+					avgaccel = avgaccel * diracceldamp
+				end
+
+				local accelweight = 0.25
+				local accelcomp = avgaccel * (lookahead * accelweight)
+				local predictedvel = avgvl + accelcomp
+
+				local headsizey = head.Size.Y / 2
+				local hrpsizey = hrp.Size.Y / 2
+				local basegap = 0.2
+				local offset = headsizey + hrpsizey + basegap
+
+				if isjumping then
+					local yvelweight = 0.15
+					offset = offset + (avgyvel * lookahead * yvelweight)
+				end
+
+				local flatpos = (head.CFrame + (predictedvel * lookahead)).Position
+				local predicted = head.CFrame * CFrame.new(0, offset, 0)
+				predicted = CFrame.new(flatpos.X, flatpos.Y + offset, flatpos.Z) * (head.CFrame - head.CFrame.Position)
+
+				hrp.CFrame = predicted
+				hrp.Velocity = Vector3.new(0, 0, 0)
+				hrp.RotVelocity = Vector3.new(0, 0, 0)
+
+				lastvel = curvel
+				lasttime = curtime
+				lasty = cury
+			else
+				if sitconn then
+					sitconn:Disconnect()
+				end
+				if jumpsitconn then
+					jumpsitconn:Disconnect()
+				end
+				exec("clip")
+				p.Character.Humanoid.Sit = false
+			end
+		end)
+	else
+		notif("Kruel", "Target player is either dead, not found, or is you.", 3)
+	end
 end)
 addcmd("unspin", "Stop spinning.", function()
 	for _, v in pairs(players.LocalPlayer.Character:GetDescendants()) do
@@ -4239,7 +4326,10 @@ drgfr.InputEnded:Connect(function(input)
 end)
 local UIS = cloneref(game:GetService("UserInputService"))
 UIS.InputChanged:Connect(function(input)
-	if draggingg and input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+	if
+		draggingg and input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch
+	then
 		local delta = input.Position - dragStartt
 		ts:Create(frr, tii, {
 			Position = UDim2.new(
