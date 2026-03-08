@@ -196,7 +196,7 @@ function Fling(part)
 
 		local flatpos = (part.CFrame + (predictedvel * lookahead)).Position
 		local predicted = CFrame.new(flatpos.X, part.Position.Y + yoffset, flatpos.Z)
-		hum.HipHeight = 2
+		hum.HipHeight = hummhipheight or p.Character.Humanoid.HipHeight
 		char:PivotTo(predicted * CFrame.Angles(math.rad(270), 0, 0))
 		hrp.Velocity = -Vector3.new(1e35, 1e250, 1e35)
 		hrp.RotVelocity = -Vector3.new(1e35, 1e30, 1e35)
@@ -2769,9 +2769,11 @@ function highlightplr(plr)
 	end
 end
 addcmd("invis", "Attempts to make you invisible.", function()
+	hummhipheight = p.Character.Humanoid.HipHeight
 	loadstring(game:HttpGet("https://pastebin.com/raw/X20V7VMw"))()
 	if r15() == false then
 		notif("Kruel", "You are not R15.", 3)
+		return
 	end
 	highlightplr(p)
 	exec("tpwalk 2")
@@ -2935,6 +2937,19 @@ addcmd("spook", "Scares a player by teleporting infront of them for half a secon
 	task.wait(0.5)
 	hrp.CFrame = backcf
 end)
+addcmd("quickspook", "Scares a player by teleporting infront of them for tenth of a second.", function(args)
+	local target = findplr(args[1])[1]
+	if not target then
+		return
+	end
+	local hrp = p.Character.HumanoidRootPart
+	local backcf = hrp.CFrame + hrp.CFrame.lookVector
+	local targethrp = target.Character.HumanoidRootPart
+	hrp.CFrame = targethrp.CFrame * CFrame.new(0, 0, -2)
+	hrp.CFrame = CFrame.lookAt(hrp.Position, targethrp.Position)
+	task.wait(0.1)
+	hrp.CFrame = backcf
+end)
 addcmd("lookat", "Looks at a player", function(args)
 	local target = findplr(args[1])[1]
 	if not target then
@@ -3086,7 +3101,7 @@ addcmd({ "void", "kill" }, "New fling", function(args)
 			local hum = p.Character.Humanoid
 			local orghipheight = hum.HipHeight
 			local trgthum = trgt.Character.Humanoid
-			local expecteddt = 1 / math.max(getfpscap(), 30)
+			local expecteddt = 1 / math.max(240, 30)
 			local lastvel = part.AssemblyLinearVelocity
 			local lasttime = tick()
 			local lasty = part.Position.Y
@@ -3185,20 +3200,11 @@ addcmd({ "void", "kill" }, "New fling", function(args)
 				end
 				local flatpos = (part.CFrame + (predictedvel * lookahead)).Position
 				local predicted = CFrame.new(flatpos.X, part.Position.Y + yoffset, flatpos.Z)
-				hrp.CFrame = predicted * CFrame.new(math.random() * 0.6 - 0.1, 0, math.random() * 0.6 - 0.1)
-				hrp.AssemblyLinearVelocity = Vector3.new(0, -math.random(50000000000, 100000000000), 0)
-				hrp.AssemblyAngularVelocity = Vector3.new(
-					math.random(-50000000000, -5000000000),
-					math.random(-50000000000, -5000000000),
-					math.random(-50000000000, -5000000000)
-				)
-				hum.HipHeight = 2
+				hrp.CFrame = predicted
+				hrp.AssemblyLinearVelocity = Vector3.new(0, math.random(-5000000000, -1000000000), 0)
+				hrp.AssemblyAngularVelocity = Vector3.new(0, math.random(-5000000000, -1000000000), 0)
+				hum.HipHeight = hummhipheight or p.Character.Humanoid.HipHeight
 				rs.Stepped:Wait()
-
-				if hrp and hrp.Parent then
-					hrp.AssemblyLinearVelocity = Vector3.zero
-					hrp.AssemblyAngularVelocity = Vector3.zero
-				end
 
 				lastvel = curvel
 				lasttime = curtime
@@ -3945,7 +3951,6 @@ addcmd("headsit", "Headsit", function(args)
 				local hrp = p.Character.HumanoidRootPart
 				p.Character.Humanoid.Sit = true
 
-				-- Calculate prediction
 				local dt = tick() - dtstart
 				dt = math.clamp(dt, expecteddt * 0.5, expecteddt * 4)
 
