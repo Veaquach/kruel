@@ -6,7 +6,7 @@
 	If you share modified versions publicly, credit @Veaquach clearly in the description.
 
 	
-	Version: v1.8.0
+	Version: v1.8.5
 	Server: https://discord.gg/pymGxT7KXR
 	Author: Veaquach
 ]]
@@ -84,7 +84,7 @@ local walkflinging = false
 local tp = cloneref(game:GetService("TeleportService"))
 local jobid = game.JobId
 local placeid = game.PlaceId
-local version = "v1.8.0"
+local version = "v1.8.5"
 local p = players.LocalPlayer
 --local pg = p:WaitForChild("PlayerGui")
 local psg = Instance.new("ScreenGui")
@@ -752,6 +752,7 @@ description.Parent = tooltip
 local constraint2 = Instance.new("UISizeConstraint")
 constraint2.MaxSize = Vector2.new(250, 500)
 constraint2.Parent = description
+local cmdcount = 0
 aust(tooltip, Color3.fromRGB(165, 165, 165), 0.8)
 local function addcmd(names, desc, func)
 	task.spawn(function()
@@ -762,7 +763,7 @@ local function addcmd(names, desc, func)
 
 		local btn = Instance.new("TextButton")
 		btn.Size = UDim2.new(1, 0, 0, 15)
-
+		cmdcount += 1
 		local name = names[1]
 		local btn = Instance.new("TextButton")
 		btn.Size = UDim2.new(1, 0, 0, 15)
@@ -3288,6 +3289,114 @@ end)
 addcmd("stopvoid", "Stops voiding.", function()
 	newflinging = false
 end)
+
+local loopvoid = {}
+local loopvoidconns = {}
+
+addcmd("loopvoid", "Voids someone in a loop.", function(args)
+	for _, v in pairs(findplr(args[1])) do
+		if v == p then
+			continue
+		end
+		if loopvoid[v] then
+			continue
+		end
+
+		loopvoid[v] = true
+
+		task.spawn(function()
+			while loopvoid[v] and v.Parent do
+				exec("void " .. v.Name)
+
+				task.wait(5)
+
+				if not loopvoid[v] then
+					break
+				end
+
+				if
+					v.Character
+					and v.Character:FindFirstChild("HumanoidRootPart")
+					and v.Character.HumanoidRootPart.AssemblyLinearVelocity.Magnitude < 500
+				then
+					exec("void " .. v.Name)
+				end
+			end
+		end)
+
+		loopvoidconns[v] = v.CharacterAdded:Connect(function(char)
+			if loopvoid[v] then
+				char:WaitForChild("HumanoidRootPart")
+				exec("void " .. v.Name)
+			end
+		end)
+	end
+end)
+
+addcmd("unloopvoid", "Stops loop void.", function()
+	for v, _ in pairs(loopvoid) do
+		loopvoid[v] = nil
+	end
+
+	for v, conn in pairs(loopvoidconns) do
+		conn:Disconnect()
+		loopvoidconns[v] = nil
+	end
+end)
+
+local loopfling = {}
+local loopflingconns = {}
+
+addcmd("loopfling", "Flings someone in a loop.", function(args)
+	for _, v in pairs(findplr(args[1])) do
+		if v == p then
+			continue
+		end
+		if loopfling[v] then
+			continue
+		end
+
+		loopfling[v] = true
+
+		task.spawn(function()
+			while loopfling[v] and v.Parent do
+				exec("fling " .. v.Name)
+
+				task.wait(5)
+
+				if not loopfling[v] then
+					break
+				end
+
+				if
+					v.Character
+					and v.Character:FindFirstChild("HumanoidRootPart")
+					and v.Character.HumanoidRootPart.AssemblyLinearVelocity.Magnitude < 500
+				then
+					exec("fling " .. v.Name)
+				end
+			end
+		end)
+
+		loopflingconns[v] = v.CharacterAdded:Connect(function(char)
+			if loopfling[v] then
+				char:WaitForChild("HumanoidRootPart")
+				exec("fling " .. v.Name)
+			end
+		end)
+	end
+end)
+
+addcmd("unloopfling", "Stops loop fling.", function()
+	for v, _ in pairs(loopfling) do
+		loopfling[v] = nil
+	end
+
+	for v, conn in pairs(loopflingconns) do
+		conn:Disconnect()
+		loopflingconns[v] = nil
+	end
+end)
 addcmd("voidtool", "Gives you a void tool.", function()
 	local tool = Instance.new("Tool")
 	tool.RequiresHandle = false
@@ -3600,8 +3709,8 @@ addcmd("unantifling", "Stops antifling.", function()
 		end
 	end
 end)
-addcmd("cmdcount", "Lists how much commands Kruel has. (Number)", function()
-	notif("Kruel", "Commands: " .. countt, 3)
+addcmd({ "cmdcount", "commandcount" }, "Lists how much commands Kruel has. (Number)", function()
+	notif("Kruel", "Commands: " .. cmdcount, 3)
 end)
 local dances = {
 	"/e dance",
