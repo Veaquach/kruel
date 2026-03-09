@@ -3301,11 +3301,11 @@ addcmd("loopvoid", "Voids someone in a loop.", function(args)
 		if loopvoid[v] then
 			continue
 		end
-		local pos = p.Character.HumanoidRootPart.CFrame
 		loopvoid[v] = true
 
 		task.spawn(function()
 			while loopvoid[v] and v.Parent do
+				local pos = p.Character.HumanoidRootPart.CFrame
 				exec("void " .. v.Name)
 
 				task.wait(5)
@@ -3360,9 +3360,9 @@ addcmd("loopfling", "Flings someone in a loop.", function(args)
 		end
 
 		loopfling[v] = true
-		local pos = p.Character.HumanoidRootPart.CFrame
 		task.spawn(function()
 			while loopfling[v] and v.Parent do
+				local pos = p.Character.HumanoidRootPart.CFrame
 				exec("fling " .. v.Name)
 
 				task.wait(5)
