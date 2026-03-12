@@ -2959,6 +2959,7 @@ addcmd("untpwalk", "Stop tpwalking", function()
 	notif("Kruel", "Stopped TP walking.", 2)
 	return
 end)
+local spooktime = 0.5
 addcmd("spook", "Scares a player by teleporting infront of them for half a second.", function(args)
 	local target = findplr(args[1])[1]
 	if not target then
@@ -2969,21 +2970,15 @@ addcmd("spook", "Scares a player by teleporting infront of them for half a secon
 	local targethrp = target.Character.HumanoidRootPart
 	hrp.CFrame = targethrp.CFrame * CFrame.new(0, 0, -2)
 	hrp.CFrame = CFrame.lookAt(hrp.Position, targethrp.Position)
-	task.wait(0.5)
+	task.wait(spooktime or 0.5)
 	hrp.CFrame = backcf
 end)
-addcmd("quickspook", "Scares a player by teleporting infront of them for tenth of a second.", function(args)
-	local target = findplr(args[1])[1]
-	if not target then
+addcmd("spooktime", "Changes how quickly spook goes away. (seconds)", function(args)
+	if not tonumber(args[1]) then
+		notif("Kruel", "Not a valid time.", 3)
 		return
 	end
-	local hrp = p.Character.HumanoidRootPart
-	local backcf = hrp.CFrame + hrp.CFrame.lookVector
-	local targethrp = target.Character.HumanoidRootPart
-	hrp.CFrame = targethrp.CFrame * CFrame.new(0, 0, -2)
-	hrp.CFrame = CFrame.lookAt(hrp.Position, targethrp.Position)
-	task.wait(0.1)
-	hrp.CFrame = backcf
+	spooktime = tonumber(args[1])
 end)
 addcmd("lookat", "Looks at a player", function(args)
 	local target = findplr(args[1])[1]
