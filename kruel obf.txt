@@ -84,7 +84,7 @@ local walkflinging = false
 local tp = cloneref(game:GetService("TeleportService"))
 local jobid = game.JobId
 local placeid = game.PlaceId
-local version = "v1.8.5"
+local version = "v1.9.0"
 local p = players.LocalPlayer
 --local pg = p:WaitForChild("PlayerGui")
 local psg = Instance.new("ScreenGui")
@@ -4349,6 +4349,36 @@ gradd.Color = ColorSequence.new({
 	ColorSequenceKeypoint.new(0, theme.Title),
 	ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 180, 180)),
 })
+addcmd({ "cmds", "help" }, "Lists all commands.", function()
+	if frr.Visible == true then
+		frr.Visible = false
+		return
+	end
+	frr.Position = UDim2.new(0.5, -175, 0.5, -250)
+	frr.Visible = true
+end)
+addcmd("freeze", "Freezes you in place.", function()
+	local char = p.Character
+	if not char then
+		return
+	end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp or not char then
+		return
+	end
+	hrp.Anchored = true
+end)
+addcmd("unfreeze", "Stops freeze.", function()
+	local char = p.Character
+	if not char then
+		return
+	end
+	local hrp = char.HumanoidRootPart
+	if not hrp or not char then
+		return
+	end
+	hrp.Anchored = false
+end)
 gradd.Parent = drgfr
 local cmdtitle = Instance.new("TextLabel")
 cmdtitle.Text = "Commands - " .. cmdcount
@@ -4511,36 +4541,6 @@ UIS.InputChanged:Connect(function(input)
 			),
 		}):Play()
 	end
-end)
-addcmd({ "cmds", "help" }, "Lists all commands.", function()
-	if frr.Visible == true then
-		frr.Visible = false
-		return
-	end
-	frr.Position = UDim2.new(0.5, -175, 0.5, -250)
-	frr.Visible = true
-end)
-addcmd("freeze", "Freezes you in place.", function()
-	local char = p.Character
-	if not char then
-		return
-	end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp or not char then
-		return
-	end
-	hrp.Anchored = true
-end)
-addcmd("unfreeze", "Stops freeze.", function()
-	local char = p.Character
-	if not char then
-		return
-	end
-	local hrp = char.HumanoidRootPart
-	if not hrp or not char then
-		return
-	end
-	hrp.Anchored = false
 end)
 for cmdName, cmdData in pairs(cmds) do
 	local alreadyAdded = false
