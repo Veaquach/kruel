@@ -6,7 +6,7 @@
 	If you share modified versions publicly, credit @Veaquach clearly in the description.
 
 	
-	Version: v1.8.5
+	Version: v1.9.0
 	Server: https://discord.gg/pymGxT7KXR
 	Author: Veaquach
 ]]
