@@ -525,6 +525,7 @@ fr.Position = UDim2.new(0, 0, 0.77, 0)
 fr.BackgroundColor3 = theme.Main
 fr.Parent = psg
 fr.ClipsDescendants = true
+aui(fr, 7)
 local onsfr = Instance.new("Frame")
 onsfr.Size = UDim2.new(0, 250, 0, 320)
 onsfr.Position = UDim2.new(0, 0, 0, 20)
@@ -583,14 +584,29 @@ drg.BorderSizePixel = 0
 drg.Text = "Kruel - " .. version
 drg.TextColor3 = theme.Text
 drg.Font = Enum.Font.GothamBold
+drg.ZIndex = 6
 drg.TextSize = 16
 drg.Parent = fr
+local drg2 = Instance.new("Frame")
+drg2.BackgroundColor3 = theme.Title
+drg2.Position = UDim2.new(0, 0, 0, 10)
+drg2.Size = UDim2.new(0, 250, 0, 10)
+drg2.BorderSizePixel = 0
+drg2.Parent = fr
+drg2.ZIndex = 5
+aui(drg, 7)
 local grad = Instance.new("UIGradient")
 grad.Color = ColorSequence.new({
 	ColorSequenceKeypoint.new(0, theme.Title),
 	ColorSequenceKeypoint.new(1, Color3.fromRGB(215, 215, 215)),
 })
 grad.Parent = drg
+local grad2 = Instance.new("UIGradient")
+grad2.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, theme.Title),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(215, 215, 215)),
+})
+grad2.Parent = drg2
 local uis = cloneref(game:GetService("UserInputService"))
 -- lowk dog for not making mobile support idk if it works or not but idgaf about delta skids
 if uis.TouchEnabled and not uis.KeyboardEnabled then
@@ -997,46 +1013,50 @@ addcmd("fling", "Flings anyone you want.", function(args)
 	end
 end)
 local flingauraconn = nil
-local isflingingaplayer = false
-local lastflingtime = 0
+local flingauraplayrs = {}
 local flingaurarange = 15
+
 addcmd("flingaura", "Fling anyone around you.", function()
 	if flingauraconn then
 		flingauraconn:Disconnect()
 	end
-
 	flingauraconn = rs.Heartbeat:Connect(function()
-		if isflingingaplayer then
+		if flinging then
 			return
 		end
-		local now = tick()
-		if now - lastflingtime < 0.5 then
-			return
-		end
-
 		for i, v in pairs(players:GetPlayers()) do
 			if v ~= p and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
 				local hrp = v.Character.HumanoidRootPart
 				local dist = (hrp.Position - p.Character.HumanoidRootPart.Position).Magnitude
-				if dist < flingaurarange then
-					isflingingaplayer = true
-					lastflingtime = tick()
-					exec("fling " .. v.Name)
-					isflingingaplayer = false
+				if dist < flingaurarange and not flingauraplayrs[v.UserId] then
+					flingauraplayrs[v.UserId] = true
+					task.spawn(function()
+						exec("fling " .. v.Name)
+						while flinging do
+							task.wait()
+						end
+						task.wait(1)
+						flingauraplayrs[v.UserId] = nil
+					end)
 					return
 				end
 			end
 		end
 	end)
 end)
+
 addcmd("flingaurarange", "Changes the range of flingaura.", function(args)
 	flingaurarange = tonumber(args[1]) or 15
 end)
+
 addcmd("unflingaura", "Stops flingaura.", function()
 	if flingauraconn then
 		flingauraconn:Disconnect()
+		flingauraconn = nil
 	end
+	flingauraplayrs = {}
 end)
+
 local whitelists = {}
 
 addcmd({ "whitelist", "wl", "admin" }, "Lets anyone use your commands.", function(args)
@@ -1090,6 +1110,20 @@ addcmd({ "unwhitelist", "unwl", "unadmin" }, "Stops anyone from using your comma
 	notif("Kruel", "Unwhitelisted " .. target.Name, 3)
 	whitelists[target]:Disconnect()
 	whitelists[target] = nil
+end)
+addcmd({ "copycmds", "copycommands" }, "Copies all commands to clipboard.", function()
+	local list = "Kruel Command List:\n\n"
+	local seen = {}
+
+	for cmdName, data in pairs(cmds) do
+		local desc = data.Description
+		if not seen[data.Function] then
+			list = list .. "" .. cmdName .. " - " .. desc .. "\n"
+			seen[data.Function] = true
+		end
+	end
+
+	setclipboard(list .. "\nKruel - a project made with love by Veaquach.\n\nTotal commands: " .. cmdcount .. "\nVersion: " .. version)
 end)
 addcmd("goto", "Go to anyone.", function(args)
 	local vctms = findplr(args[1])
@@ -3301,36 +3335,43 @@ addcmd("loopvoid", "Voids someone in a loop.", function(args)
 		if loopvoid[v] then
 			continue
 		end
+
+		local pos = p.Character.HumanoidRootPart.CFrame
 		loopvoid[v] = true
 
 		task.spawn(function()
 			while loopvoid[v] and v.Parent do
-				local pos = p.Character.HumanoidRootPart.CFrame
-				exec("void " .. v.Name)
-
-				task.wait(5)
-				p.Character.HumanoidRootPart.Velocity = Vector3.zero
-				p.Character.HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
-				p.Character.HumanoidRootPart.CFrame = pos
+				if not newflinging then
+					exec("void " .. v.Name)
+				end
+				while newflinging do
+					task.wait()
+				end
 				if not loopvoid[v] then
 					break
 				end
 
-				if
-					v.Character
-					and v.Character:FindFirstChild("HumanoidRootPart")
-					and v.Character.HumanoidRootPart.AssemblyLinearVelocity.Magnitude < 500
-				then
-					exec("void " .. v.Name)
-					task.wait(5)
+				task.wait(1)
+				if not loopvoid[v] then
+					break
 				end
+
+				pcall(function()
+					p.Character.HumanoidRootPart.Velocity = Vector3.zero
+					p.Character.HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
+				end)
 			end
 		end)
 
 		loopvoidconns[v] = v.CharacterAdded:Connect(function(char)
 			if loopvoid[v] then
 				char:WaitForChild("HumanoidRootPart")
-				exec("void " .. v.Name)
+				while newflinging do
+					task.wait()
+				end
+				if loopvoid[v] then
+					exec("void " .. v.Name)
+				end
 			end
 		end)
 	end
@@ -3340,13 +3381,13 @@ addcmd("unloopvoid", "Stops loop void.", function()
 	for v, _ in pairs(loopvoid) do
 		loopvoid[v] = nil
 	end
-
 	for v, conn in pairs(loopvoidconns) do
 		conn:Disconnect()
 		loopvoidconns[v] = nil
 	end
 end)
 
+-- loopfling
 local loopfling = {}
 local loopflingconns = {}
 
@@ -3359,34 +3400,43 @@ addcmd("loopfling", "Flings someone in a loop.", function(args)
 			continue
 		end
 
+		local pos = p.Character.HumanoidRootPart.CFrame
 		loopfling[v] = true
+
 		task.spawn(function()
 			while loopfling[v] and v.Parent do
-				local pos = p.Character.HumanoidRootPart.CFrame
-				exec("fling " .. v.Name)
-
-				task.wait(5)
-				p.Character.HumanoidRootPart.Velocity = Vector3.zero
-				p.Character.HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
-				p.Character.HumanoidRootPart.CFrame = pos
+				if not flinging then
+					exec("fling " .. v.Name)
+				end
+				while flinging do
+					task.wait()
+				end
 				if not loopfling[v] then
 					break
 				end
 
-				if
-					v.Character
-					and v.Character:FindFirstChild("HumanoidRootPart")
-					and v.Character.HumanoidRootPart.AssemblyLinearVelocity.Magnitude < 500
-				then
-					exec("fling " .. v.Name)
+				task.wait(1)
+				if not loopfling[v] then
+					break
 				end
+
+				pcall(function()
+					p.Character.HumanoidRootPart.Velocity = Vector3.zero
+					p.Character.HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
+					p.Character.HumanoidRootPart.CFrame = pos
+				end)
 			end
 		end)
 
 		loopflingconns[v] = v.CharacterAdded:Connect(function(char)
 			if loopfling[v] then
 				char:WaitForChild("HumanoidRootPart")
-				exec("fling " .. v.Name)
+				while flinging do
+					task.wait()
+				end
+				if loopfling[v] then
+					exec("fling " .. v.Name)
+				end
 			end
 		end)
 	end
@@ -3396,7 +3446,6 @@ addcmd("unloopfling", "Stops loop fling.", function()
 	for v, _ in pairs(loopfling) do
 		loopfling[v] = nil
 	end
-
 	for v, conn in pairs(loopflingconns) do
 		conn:Disconnect()
 		loopflingconns[v] = nil
@@ -3420,45 +3469,48 @@ addcmd("voidtool", "Gives you a void tool.", function()
 	end)
 end)
 local voidauraconn = nil
-local isvoidingaplayer = false
-local lastvoidtime = 0
+local voidingplayers = {}
 local voidaurarange = 15
+
 addcmd("voidaura", "Voids anyone near you.", function()
 	if voidauraconn then
 		voidauraconn:Disconnect()
 	end
-
 	voidauraconn = rs.Heartbeat:Connect(function()
-		if isvoidingaplayer then
+		if newflinging then
 			return
 		end
-		local now = tick()
-		if now - lastvoidtime < 0.5 then
-			return
-		end
-
 		for i, v in pairs(players:GetPlayers()) do
 			if v ~= p and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
 				local hrp = v.Character.HumanoidRootPart
 				local dist = (hrp.Position - p.Character.HumanoidRootPart.Position).Magnitude
-				if dist < voidaurarange then
-					isvoidingaplayer = true
-					lastvoidtime = tick()
-					exec("void " .. v.Name)
-					isvoidingaplayer = false
+				if dist < voidaurarange and not voidingplayers[v.UserId] then
+					voidingplayers[v.UserId] = true
+					task.spawn(function()
+						exec("void " .. v.Name)
+						while newflinging do
+							task.wait()
+						end
+						task.wait(0.5)
+						voidingplayers[v.UserId] = nil
+					end)
 					return
 				end
 			end
 		end
 	end)
 end)
+
 addcmd("voidaurarange", "Changes the range of the void aura.", function(args)
 	voidaurarange = tonumber(args[1]) or 15
 end)
+
 addcmd("unvoidaura", "Stops the void aura.", function()
 	if voidauraconn then
 		voidauraconn:Disconnect()
+		voidauraconn = nil
 	end
+	voidingplayers = {}
 end)
 local hitlering = false
 addcmd("hitler", "Hitler salute tool.", function()
@@ -4299,7 +4351,7 @@ gradd.Color = ColorSequence.new({
 })
 gradd.Parent = drgfr
 local cmdtitle = Instance.new("TextLabel")
-cmdtitle.Text = "Commands - " .. countt
+cmdtitle.Text = "Commands - " .. cmdcount
 cmdtitle.Font = Enum.Font.GothamBold
 cmdtitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 cmdtitle.TextSize = 16
