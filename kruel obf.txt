@@ -6,7 +6,7 @@
 	If you share modified versions publicly, credit @Veaquach clearly in the description.
 
 	
-	Version: v1.9.0
+	Version: v2.0.0
 	Server: https://discord.gg/pymGxT7KXR
 	Author: Veaquach
 ]]
@@ -84,8 +84,37 @@ local walkflinging = false
 local tp = cloneref(game:GetService("TeleportService"))
 local jobid = game.JobId
 local placeid = game.PlaceId
-local version = "v1.9.0"
+local version = "v1.8.5"
 local p = players.LocalPlayer
+local function findplr(plrnm)
+	local foundp = {}
+	if plrnm == "all" then
+		for _, v in pairs(players:GetPlayers()) do
+			table.insert(foundp, v)
+		end
+	elseif plrnm == "others" then
+		for _, v in pairs(players:GetPlayers()) do
+			if v ~= p then
+				table.insert(foundp, v)
+			end
+		end
+	elseif plrnm == "me" then
+		table.insert(foundp, p)
+	elseif plrnm == "random" then
+		local plrs = players:GetPlayers()
+		table.insert(foundp, plrs[math.random(1, #plrs)])
+	else
+		for _, v in pairs(players:GetPlayers()) do
+			if
+				v.Name:lower():sub(1, #plrnm) == plrnm:lower()
+				or v.DisplayName:lower():sub(1, #plrnm) == plrnm:lower()
+			then
+				table.insert(foundp, v)
+			end
+		end
+	end
+	return foundp
+end
 --local pg = p:WaitForChild("PlayerGui")
 local psg = Instance.new("ScreenGui")
 psg.Name = "kruelty"
@@ -243,35 +272,6 @@ local function aui(el, crd)
 	local uic = Instance.new("UICorner")
 	uic.Parent = el
 	uic.CornerRadius = UDim.new(0, crd)
-end
-local function findplr(plrnm)
-	local foundp = {}
-	if plrnm == "all" then
-		for _, v in pairs(players:GetPlayers()) do
-			table.insert(foundp, v)
-		end
-	elseif plrnm == "others" then
-		for _, v in pairs(players:GetPlayers()) do
-			if v ~= p then
-				table.insert(foundp, v)
-			end
-		end
-	elseif plrnm == "me" then
-		table.insert(foundp, p)
-	elseif plrnm == "random" then
-		local plrs = players:GetPlayers()
-		table.insert(foundp, plrs[math.random(1, #plrs)])
-	else
-		for _, v in pairs(players:GetPlayers()) do
-			if
-				v.Name:lower():sub(1, #plrnm) == plrnm:lower()
-				or v.DisplayName:lower():sub(1, #plrnm) == plrnm:lower()
-			then
-				table.insert(foundp, v)
-			end
-		end
-	end
-	return foundp
 end
 local function aust(el, color, thick)
 	local s = Instance.new("UIStroke")
@@ -837,6 +837,9 @@ uis.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then
 		return
 	end
+	if crg:FindFirstChildOfClass("TextBox") and crg:FindFirstChildOfClass("TextBox"):IsFocused() then
+		return
+	end
 	if input.KeyCode == Enum.KeyCode.Semicolon then
 		typing = true
 		ts:Create(fr, tii, { Position = UDim2.new(0, fr.Position.X.Offset, 0.77, 0) }):Play()
@@ -1123,7 +1126,7 @@ addcmd({ "copycmds", "copycommands" }, "Copies all commands to clipboard.", func
 		end
 	end
 
-	setclipboard(list .. "\nKruel - a project made with love by Veaquach.\n\nTotal commands: " .. cmdcount .. "\nVersion: " .. version)
+	setclipboard(list .. "\nKruel - a project made with love by Veaquach.\n\nTotal commands: " .. cmdcount)
 end)
 addcmd("goto", "Go to anyone.", function(args)
 	local vctms = findplr(args[1])
@@ -1473,11 +1476,11 @@ addcmd("fakeout", "Fake going into the void.", function()
 	if p.Character and p.Character.HumanoidRootPart then
 		local pos = p.Character.HumanoidRootPart.CFrame
 		local orgfallenparts = workspace.FallenPartsDestroyHeight
-		exec("antivoid")
+		workspace.FallenPartsDestroyHeight = 0/0
 		p.Character.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(0, orgfallenparts - 25, 0))
 		task.wait(0.4)
 		p.Character.HumanoidRootPart.CFrame = pos
-		exec("unantivoid")
+		workspace.FallenPartsDestroyHeight = orgfallenparts
 	end
 end)
 addcmd({ "jp", "jumppower", "jumpheight" }, "Changes JumpHeight property.", function(args)
@@ -1926,6 +1929,17 @@ function ESP(plr, char)
 		label.Text = string.format("[%dHP] %s [%dM]", math.floor(hum.Health), displayName, math.floor(distance))
 
 		highlight = char:FindFirstChildOfClass("Highlight")
+		local percentage = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
+		hfr.Size = UDim2.new(percentage, 0, 0, 8)
+		if percentage < 0.25 then
+			hfr.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+		elseif percentage < 0.5 then
+			hfr.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+		elseif percentage < 0.6 then
+			hfr.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+		else
+			hfr.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+		end
 		if distance > 250 then
 			if highlight then
 				highlight:Destroy()
@@ -1942,19 +1956,6 @@ function ESP(plr, char)
 			end
 
 			highlight.FillColor = plr.TeamColor.Color
-
-			local percentage = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
-			hfr.Size = UDim2.new(percentage, 0, 0, 8)
-
-			if percentage < 0.25 then
-				hfr.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-			elseif percentage < 0.5 then
-				hfr.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
-			elseif percentage < 0.6 then
-				hfr.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
-			else
-				hfr.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-			end
 		end
 	end)
 end
@@ -2959,7 +2960,6 @@ addcmd("untpwalk", "Stop tpwalking", function()
 	notif("Kruel", "Stopped TP walking.", 2)
 	return
 end)
-local spooktime = 0.5
 addcmd("spook", "Scares a player by teleporting infront of them for half a second.", function(args)
 	local target = findplr(args[1])[1]
 	if not target then
@@ -2970,15 +2970,21 @@ addcmd("spook", "Scares a player by teleporting infront of them for half a secon
 	local targethrp = target.Character.HumanoidRootPart
 	hrp.CFrame = targethrp.CFrame * CFrame.new(0, 0, -2)
 	hrp.CFrame = CFrame.lookAt(hrp.Position, targethrp.Position)
-	task.wait(spooktime or 0.5)
+	task.wait(0.5)
 	hrp.CFrame = backcf
 end)
-addcmd("spooktime", "Changes how quickly spook goes away. (seconds)", function(args)
-	if not tonumber(args[1]) then
-		notif("Kruel", "Not a valid time.", 3)
+addcmd("quickspook", "Scares a player by teleporting infront of them for tenth of a second.", function(args)
+	local target = findplr(args[1])[1]
+	if not target then
 		return
 	end
-	spooktime = tonumber(args[1])
+	local hrp = p.Character.HumanoidRootPart
+	local backcf = hrp.CFrame + hrp.CFrame.lookVector
+	local targethrp = target.Character.HumanoidRootPart
+	hrp.CFrame = targethrp.CFrame * CFrame.new(0, 0, -2)
+	hrp.CFrame = CFrame.lookAt(hrp.Position, targethrp.Position)
+	task.wait(0.1)
+	hrp.CFrame = backcf
 end)
 addcmd("lookat", "Looks at a player", function(args)
 	local target = findplr(args[1])[1]
@@ -3640,96 +3646,246 @@ addcmd("rocket", "Rocket someone up.", function(args)
 		hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
 	end
 end)
+local supperrocketing = false
 addcmd("superrocket", "Rocket someone up very high.", function(args)
-	local trgt = findplr(args[1])[1]
-	if trgt == p then
-		return
-	end
-	if trgt and trgt.Character and trgt.Character.HumanoidRootPart and p.Character and p.Character.HumanoidRootPart then
-		local hrp = p.Character.HumanoidRootPart
-		local part = trgt.Character.HumanoidRootPart
-		local tc = tick()
-		rocketing = true
-		local orgpos = hrp.CFrame
-		local fallenparts = workspace.FallenPartsDestroyHeight
-		local char = p.Character
-		workspace.FallenPartsDestroyHeight = 0 / 0
-		local orgsub = workspace.CurrentCamera.CameraSubject
-		workspace.CurrentCamera.CameraSubject = part.Parent.Humanoid
-		exec("walkfling")
-		exec("antitrip")
-		local orgmasses = {}
-		for _, v in pairs(char:GetDescendants()) do
-			if v:IsA("BasePart") then
-				orgmasses[v] = v.AssemblyMass
-				v.Massless = true
-			end
+	local trgts = findplr(args[1])
+	supperrocketing = true
+	for _, trgt in pairs(trgts) do
+		print(trgt.Name)
+		if not supperrocketing then
+			break
+		end
+		if trgt == p then
+			continue
 		end
 
-		local velhist = {}
-		local histsize = 3
-
-		repeat
-			rs.Heartbeat:Wait()
-
-			table.insert(velhist, part.AssemblyLinearVelocity)
-			if #velhist > histsize then
-				table.remove(velhist, 1)
-			end
-			local avgvl = Vector3.zero
-			for _, v in pairs(velhist) do
-				avgvl += v
-			end
-			avgvl /= #velhist
-
-			local speed = avgvl.Magnitude
-			local predmulti = math.clamp(speed / trgt.Character.Humanoid.WalkSpeed, 0.15, 0.45)
-
-			local predicted = part.CFrame
-			predicted += avgvl * predmulti
-			char:PivotTo(predicted)
-
-			hrp.Velocity = Vector3.new(0, 1250, 0)
-			hrp.RotVelocity = Vector3.new(1250, 1250, 1250)
-			hrp.AssemblyLinearVelocity = Vector3.new(0, 1250, 0)
-			hrp.AssemblyAngularVelocity = Vector3.new(1250, 1250, 1250)
-
-			for i = 1, 5 do
-				hrp.CFrame = predicted * CFrame.new(0, -2, 0)
+		local success = pcall(function()
+			if
+				not (
+					trgt
+					and trgt.Character
+					and trgt.Character:FindFirstChild("HumanoidRootPart")
+					and trgt.Character:FindFirstChild("Humanoid")
+					and p.Character
+					and p.Character:FindFirstChild("HumanoidRootPart")
+				)
+			then
+				return
 			end
 
-		until part.AssemblyLinearVelocity.Magnitude > 75 or tick() - tc > 4
-
-		rocketing = false
-
-		for part, mass in pairs(orgmasses) do
-			if part and part.Parent then
-				part.Massless = false
+			if trgt.Character.Humanoid.SeatPart ~= nil then
+				local seat = trgt.Character.Humanoid.SeatPart
+				if seat.Anchored and seat.AssemblyLinearVelocity.Magnitude < 1 then
+					notif("Kruel", trgt.Name .. " is sitting on anchored seat, cannot voidfling.", 3)
+					return
+				end
 			end
+
+			exec("unwalkfling")
+			exec("antisit")
+			exec("antitrip")
+			local hrp = p.Character.HumanoidRootPart
+			local part = trgt.Character.HumanoidRootPart
+			p.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+			local tc = tick()
+			local orgpos = hrp.CFrame
+			local fallenparts = workspace.FallenPartsDestroyHeight
+			local char = p.Character
+			workspace.FallenPartsDestroyHeight = 0 / 0
+			local orgsub = workspace.CurrentCamera.CameraSubject
+			workspace.CurrentCamera.CameraSubject = part.Parent.Humanoid
+			local hum = p.Character.Humanoid
+
+			local velhist = {}
+			local accelhist = {}
+			local yhist = {}
+			local histsize = 4
+			local hum = p.Character.Humanoid
+			local orghipheight = hum.HipHeight
+			local trgthum = trgt.Character.Humanoid
+			local expecteddt = 1 / math.max(240, 30)
+			local lastvel = part.AssemblyLinearVelocity
+			local lasttime = tick()
+			local lasty = part.Position.Y
+			local hasdied = false
+			local diedconn = trgt.Character.Humanoid.Died:Connect(function()
+				hasdied = true
+			end)
+			local remconn = trgt.CharacterRemoving:Connect(function()
+				hasdied = true
+			end)
+
+			repeat
+				local dtstart = tick()
+				rs.Heartbeat:Wait()
+				local dt = tick() - dtstart
+				dt = math.clamp(dt, expecteddt * 0.5, expecteddt * 4)
+				if not supperrocketing or not part or not part.Parent or not p.Character or not hrp or not hrp.Parent then
+					break
+				end
+
+				local curvel = part.AssemblyLinearVelocity
+				local curtime = tick()
+				local cury = part.Position.Y
+				local accel = (curvel - lastvel) / math.max(curtime - lasttime, 0.001)
+				local yvel = (cury - lasty) / math.max(curtime - lasttime, 0.001)
+
+				table.insert(velhist, Vector3.new(curvel.X, 0, curvel.Z))
+				if #velhist > histsize then
+					table.remove(velhist, 1)
+				end
+
+				table.insert(accelhist, Vector3.new(accel.X, 0, accel.Z))
+				if #accelhist > histsize then
+					table.remove(accelhist, 1)
+				end
+
+				table.insert(yhist, yvel)
+				if #yhist > histsize then
+					table.remove(yhist, 1)
+				end
+
+				local avgvl = Vector3.zero
+				for _, v in pairs(velhist) do
+					avgvl += v
+				end
+				avgvl /= #velhist
+
+				local avgaccel = Vector3.zero
+				for _, a in pairs(accelhist) do
+					avgaccel += a
+				end
+				avgaccel /= #accelhist
+
+				local avgyvel = 0
+				for _, y in pairs(yhist) do
+					avgyvel += y
+				end
+				avgyvel /= #yhist
+
+				local accelchange = (accel - avgaccel).Magnitude
+				local jumpthreshold = trgthum.JumpPower * 0.6
+				local isjumping = math.abs(avgyvel) > jumpthreshold or math.abs(yvel) > (jumpthreshold * 1.8)
+				local accelthreshold = trgthum.WalkSpeed * 7.5
+				local ischangingdir = accelchange > accelthreshold
+
+				local speed = avgvl.Magnitude
+				local walkspeed = trgthum.WalkSpeed
+				local speedratio = speed / math.max(walkspeed, 0.1)
+
+				local dynmin = math.clamp(0.18 + speedratio * 0.1, 0.18, 0.35)
+				local dynmax = math.clamp(0.5 + speedratio * 0.25, 0.55, 1.0)
+				local predmulti = math.clamp(speedratio, dynmin, dynmax)
+
+				local lagoffset = math.max(dt - expecteddt, 0) * 3.5
+				local pingcomp = lagoffset + dt * 1.8
+				local lookahead = predmulti + pingcomp
+
+				if isjumping then
+					lookahead = lookahead * 0.5
+					avgaccel = avgaccel * 0.15
+				elseif ischangingdir then
+					lookahead = lookahead * 0.5
+					avgaccel = avgaccel * 0.3
+				end
+
+				local accelcomp = avgaccel * (lookahead * 0.45)
+				local predictedvel = avgvl + accelcomp
+
+				local targethalfh = part.Size.Y / 2
+				local myhalfh = hrp.Size.Y / 2
+				local yoffset = targethalfh - myhalfh - 1.15
+
+				if isjumping then
+					yoffset = yoffset + (avgyvel * lookahead * 0.15)
+				end
+				local flatpos = (part.CFrame + (predictedvel * lookahead)).Position
+				local predicted = CFrame.new(flatpos.X, part.Position.Y + yoffset, flatpos.Z)
+				hrp.CFrame = predicted
+				local rng = Random.new()
+				hrp.AssemblyLinearVelocity = Vector3.new(0, rng:NextInteger(1e9, 5e9), 0)
+				hrp.AssemblyAngularVelocity = Vector3.new(0, rng:NextInteger(1e9, 5e9), 0)
+				hum.HipHeight = hummhipheight or p.Character.Humanoid.HipHeight
+				rs.Stepped:Wait()
+
+				lastvel = curvel
+				lasttime = curtime
+				lasty = cury
+
+			until (part.AssemblyLinearVelocity.Magnitude > 500)
+				or hasdied
+				or not supperrocketing
+				or not part
+				or not part.Parent
+				or tick() - tc > 5
+
+			if hrp and hrp.Parent then
+				hrp.Anchored = true
+				task.wait()
+				task.wait()
+			end
+			exec("unantitrip")
+			exec("unantisit")
+			if hum then
+				hum.HipHeight = orghipheight
+			end
+			if p.Character and p.Character.Humanoid then
+				p.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+			end
+			if hrp and hrp.Parent then
+				hrp.Velocity = Vector3.zero
+				hrp.RotVelocity = Vector3.zero
+				hrp.AssemblyLinearVelocity = Vector3.zero
+				hrp.AssemblyAngularVelocity = Vector3.zero
+				hrp.CFrame = orgpos
+				hrp.Anchored = false
+			end
+			workspace.FallenPartsDestroyHeight = fallenparts
+			local tasktospawn
+			tasktospawn = task.spawn(function()
+				for i = 1, 50 do
+					exec("unview")
+					rs.RenderStepped:Wait()
+				end
+			end)
+			task.wait(0.01)
+			task.cancel(tasktospawn)
+			tasktospawn = nil
+			if p.Character and p.Character.Humanoid then
+				local hum = p.Character.Humanoid
+				hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
+				hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, true)
+				hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+				hum.PlatformStand = false
+				hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+				hum:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+			end
+
+			diedconn:Disconnect()
+			remconn:Disconnect()
+						task.spawn(function()
+				task.wait(5)
+				if hasdied then
+					notif("Kruel", trgt.Name .. " is confirmed dead.", 2)
+				else
+					if not trgt.Character or not trgt.Character:FindFirstChild("HumanoidRootPart") then
+						notif("Kruel", trgt.Name .. " is confirmed dead.", 2)
+					elseif trgt.Character.Humanoid.Health <= 0 then
+						notif("Kruel", trgt.Name .. " is confirmed dead.", 2)
+					else
+						notif("Kruel", trgt.Name .. " hasn't died.", 2)
+					end
+				end
+
+				task.wait(0.1)
+			end)
+		end)
+
+		if not success then
+			task.wait(0.1)
 		end
-
-		hrp.Anchored = true
-		task.wait()
-		exec("unwalkfling")
-		exec("fly")
-		task.wait()
-		exec("unfly")
-		exec("unantitrip")
-		hrp.Velocity = Vector3.zero
-		hrp.RotVelocity = Vector3.zero
-		hrp.AssemblyLinearVelocity = Vector3.zero
-		hrp.AssemblyAngularVelocity = Vector3.zero
-		hrp.CFrame = orgpos
-		hrp.Anchored = false
-		workspace.FallenPartsDestroyHeight = fallenparts
-		workspace.CurrentCamera.CameraSubject = orgsub
-		task.wait(0.01)
-		hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
-		hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, true)
-		hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-		hum.PlatformStand = false
-		hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
 	end
+	supperrocketing = false
 end)
 addcmd({ "freecam", "fc" }, "Lets you use freecam with Shift + P.", function()
 	loadstring(game:HttpGet("https://pastebin.com/raw/TJB21Kxy"))()
@@ -4344,36 +4500,6 @@ gradd.Color = ColorSequence.new({
 	ColorSequenceKeypoint.new(0, theme.Title),
 	ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 180, 180)),
 })
-addcmd({ "cmds", "help" }, "Lists all commands.", function()
-	if frr.Visible == true then
-		frr.Visible = false
-		return
-	end
-	frr.Position = UDim2.new(0.5, -175, 0.5, -250)
-	frr.Visible = true
-end)
-addcmd("freeze", "Freezes you in place.", function()
-	local char = p.Character
-	if not char then
-		return
-	end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp or not char then
-		return
-	end
-	hrp.Anchored = true
-end)
-addcmd("unfreeze", "Stops freeze.", function()
-	local char = p.Character
-	if not char then
-		return
-	end
-	local hrp = char.HumanoidRootPart
-	if not hrp or not char then
-		return
-	end
-	hrp.Anchored = false
-end)
 gradd.Parent = drgfr
 local cmdtitle = Instance.new("TextLabel")
 cmdtitle.Text = "Commands - " .. cmdcount
@@ -4536,6 +4662,36 @@ UIS.InputChanged:Connect(function(input)
 			),
 		}):Play()
 	end
+end)
+addcmd({ "cmds", "help" }, "Lists all commands.", function()
+	if frr.Visible == true then
+		frr.Visible = false
+		return
+	end
+	frr.Position = UDim2.new(0.5, -175, 0.5, -250)
+	frr.Visible = true
+end)
+addcmd("freeze", "Freezes you in place.", function()
+	local char = p.Character
+	if not char then
+		return
+	end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp or not char then
+		return
+	end
+	hrp.Anchored = true
+end)
+addcmd("unfreeze", "Stops freeze.", function()
+	local char = p.Character
+	if not char then
+		return
+	end
+	local hrp = char.HumanoidRootPart
+	if not hrp or not char then
+		return
+	end
+	hrp.Anchored = false
 end)
 for cmdName, cmdData in pairs(cmds) do
 	local alreadyAdded = false
