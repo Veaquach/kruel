@@ -1476,7 +1476,7 @@ addcmd("fakeout", "Fake going into the void.", function()
 	if p.Character and p.Character.HumanoidRootPart then
 		local pos = p.Character.HumanoidRootPart.CFrame
 		local orgfallenparts = workspace.FallenPartsDestroyHeight
-		workspace.FallenPartsDestroyHeight = 0/0
+		workspace.FallenPartsDestroyHeight = 0 / 0
 		p.Character.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(0, orgfallenparts - 25, 0))
 		task.wait(0.4)
 		p.Character.HumanoidRootPart.CFrame = pos
@@ -3720,7 +3720,14 @@ addcmd("superrocket", "Rocket someone up very high.", function(args)
 				rs.Heartbeat:Wait()
 				local dt = tick() - dtstart
 				dt = math.clamp(dt, expecteddt * 0.5, expecteddt * 4)
-				if not supperrocketing or not part or not part.Parent or not p.Character or not hrp or not hrp.Parent then
+				if
+					not supperrocketing
+					or not part
+					or not part.Parent
+					or not p.Character
+					or not hrp
+					or not hrp.Parent
+				then
 					break
 				end
 
@@ -3863,7 +3870,7 @@ addcmd("superrocket", "Rocket someone up very high.", function(args)
 
 			diedconn:Disconnect()
 			remconn:Disconnect()
-						task.spawn(function()
+			task.spawn(function()
 				task.wait(5)
 				if hasdied then
 					notif("Kruel", trgt.Name .. " is confirmed dead.", 2)
@@ -4670,6 +4677,37 @@ addcmd({ "cmds", "help" }, "Lists all commands.", function()
 	end
 	frr.Position = UDim2.new(0.5, -175, 0.5, -250)
 	frr.Visible = true
+end)
+addcmd("kick", "Kicks a player (CLIENTSIDE).", function(args)
+    if not args[1] then
+        notif("Kruel", "Please specify a player.", 3)
+        return
+    end
+    local plr = findplr(args[1])[1]
+    if not plr then
+        notif("Kruel", "Player not found.", 3)
+        return
+    end
+    plr.Character:Destroy()
+    plr.CharacterAdded:Connect(function(char)
+        char:Destroy()
+    end)
+end)
+addcmd('ban', 'Bans a player (CLIENTSIDE).', function(args)
+    if not args[1] then
+        notif("Kruel", "Please specify a player.", 3)
+        return
+    end
+    local plr = findplr(args[1])[1]
+    if not plr then
+        notif("Kruel", "Player not found.", 3)
+        return
+    end
+    plr.Character:Destroy()
+    game:GetService("Players").PlayerAdded:Connect(function(plrr)
+        if plrr == plr then plrr.Character:Destroy()
+    end
+    end)
 end)
 addcmd("freeze", "Freezes you in place.", function()
 	local char = p.Character
